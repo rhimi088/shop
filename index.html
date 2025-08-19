@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Shop Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #38a169;
+            color: white;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-6 text-2xl font-bold border-b border-gray-700">
+                Mobile Shop
+            </div>
+            <nav class="flex-1 p-4">
+                <a href="#" id="dashboard-link" class="sidebar-link active block py-3 px-4 rounded-lg font-semibold">Dashboard</a>
+                <a href="#" id="inventory-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Inventory</a>
+                <a href="#" id="sales-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Sales</a>
+                <a href="#" id="customers-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Customers</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            <div id="dashboard-section">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700">Total Products</h2>
+                        <p id="total-products" class="text-4xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700">Total Sales</h2>
+                        <p id="total-sales" class="text-4xl font-bold text-green-600 mt-2">$0</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700">This Month's Sales</h2>
+                        <p id="monthly-sales" class="text-4xl font-bold text-green-600 mt-2">$0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700">Total Investment</h2>
+                        <p id="total-investment" class="text-4xl font-bold text-green-600 mt-2">$0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700">Total Customers</h2>
+                        <p id="total-customers" class="text-4xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                </div>
+                
+                 <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">✨ Quick AI Analysis</h2>
+                    <div class="flex space-x-4">
+                        <button id="view-sales-report-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">Generate Sales Analysis</button>
+                        <button id="view-inventory-report-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">Generate Inventory Analysis</button>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Recent Sales</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Product</th>
+                                    <th class="p-3">Customer</th>
+                                    <th class="p-3">Price</th>
+                                    <th class="p-3">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-sales-table">
+                                <!-- Recent sales will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inventory-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Inventory</h1>
+                <button id="add-product-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Product</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                     <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Brand</th>
+                                    <th class="p-3">Name / Model</th>
+                                    <th class="p-3">Description</th>
+                                    <th class="p-3">Stock</th>
+                                    <th class="p-3">Cost</th>
+                                    <th class="p-3">Price</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table">
+                                <!-- Inventory items will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sales-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Sales</h1>
+                <button id="add-sale-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Sale</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Product</th>
+                                    <th class="p-3">Customer</th>
+                                    <th class="p-3">Price</th>
+                                    <th class="p-3">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-table">
+                                <!-- Sales will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="customers-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Customers</h1>
+                <button id="add-customer-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Customer</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Name</th>
+                                    <th class="p-3">Email</th>
+                                    <th class="p-3">Phone</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table">
+                                <!-- Customers will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="product-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 id="product-modal-title" class="text-2xl font-bold mb-6">Add Product</h2>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="mb-4">
+                    <label for="category" class="block text-gray-700">Category</label>
+                    <select id="category" class="w-full p-2 border rounded-lg" required>
+                        <option value="Mobile Phone">Mobile Phone</option>
+                        <option value="Memory Card">Memory Card</option>
+                        <option value="Cable">Cable</option>
+                        <option value="Headphones">Headphones</option>
+                        <option value="Charger">Charger</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="brand" class="block text-gray-700">Brand</label>
+                    <input type="text" id="brand" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="model" class="block text-gray-700">Product Name / Model</label>
+                    <input type="text" id="model" class="w-full p-2 border rounded-lg" required>
+                </div>
+                 <div class="mb-4">
+                    <label for="description" class="block text-gray-700">Description</label>
+                    <textarea id="description" class="w-full p-2 border rounded-lg" rows="3"></textarea>
+                    <button type="button" id="generate-description-btn" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center">
+                        ✨ Generate Description
+                        <div id="description-loader" class="loader ml-2 hidden"></div>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label for="stock" class="block text-gray-700">Stock</label>
+                    <input type="number" id="stock" class="w-full p-2 border rounded-lg" required>
+                </div>
+                 <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="cost" class="block text-gray-700">Cost</label>
+                        <input type="number" step="0.01" id="cost" class="w-full p-2 border rounded-lg" required>
+                    </div>
+                    <div>
+                        <label for="price" class="block text-gray-700">Price</label>
+                        <input type="number" step="0.01" id="price" class="w-full p-2 border rounded-lg" required>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-product-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="sale-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-6">Add Sale</h2>
+            <form id="sale-form">
+                <div class="mb-4">
+                    <label for="sale-product" class="block text-gray-700">Product</label>
+                    <select id="sale-product" class="w-full p-2 border rounded-lg" required></select>
+                </div>
+                <div id="sales-suggestion-container" class="mb-4 hidden">
+                    <h3 class="font-semibold text-gray-700">✨ Smart Suggestions:</h3>
+                    <div id="sales-suggestions" class="mt-2 text-gray-600"></div>
+                     <div id="suggestion-loader" class="loader mt-2 hidden"></div>
+                </div>
+                <div class="mb-4">
+                    <label for="sale-customer" class="block text-gray-700">Customer</label>
+                    <select id="sale-customer" class="w-full p-2 border rounded-lg" required></select>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-sale-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Record Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 id="customer-modal-title" class="text-2xl font-bold mb-6">Add Customer</h2>
+            <form id="customer-form">
+                <input type="hidden" id="customer-id">
+                <div class="mb-4">
+                    <label for="customer-name" class="block text-gray-700">Name</label>
+                    <input type="text" id="customer-name" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="customer-email" class="block text-gray-700">Email</label>
+                    <input type="email" id="customer-email" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="customer-phone" class="block text-gray-700">Phone</label>
+                    <input type="tel" id="customer-phone" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-customer-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="analysis-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="analysis-modal-title" class="text-2xl font-bold">AI Analysis</h2>
+                <button id="close-analysis-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div id="analysis-content" class="text-gray-700 whitespace-pre-wrap">
+                <div class="flex justify-center items-center h-48">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA MANAGEMENT ---
+            let inventory = JSON.parse(localStorage.getItem('inventory')) || [
+                { id: 1, category: 'Mobile Phone', brand: 'Apple', model: 'iPhone 14', description: 'The latest iPhone with an amazing camera.', stock: 10, cost: 700, price: 999 },
+                { id: 2, category: 'Mobile Phone', brand: 'Samsung', model: 'Galaxy S23', description: 'A powerful Android phone with a stunning display.', stock: 15, cost: 630, price: 899 },
+                { id: 3, category: 'Mobile Phone', brand: 'Google', model: 'Pixel 7', description: 'The smartest smartphone with Google AI.', stock: 8, cost: 490, price: 699 },
+                { id: 4, category: 'Headphones', brand: 'Sony', model: 'WH-1000XM5', description: 'Industry-leading noise canceling headphones.', stock: 12, cost: 300, price: 399 }
+            ];
+            let sales = JSON.parse(localStorage.getItem('sales')) || [];
+            let customers = JSON.parse(localStorage.getItem('customers')) || [
+                 { id: 1, name: 'John Doe', email: 'john@example.com', phone: '123-456-7890' },
+                 { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '098-765-4321' }
+            ];
+
+            const saveData = () => {
+                localStorage.setItem('inventory', JSON.stringify(inventory));
+                localStorage.setItem('sales', JSON.stringify(sales));
+                localStorage.setItem('customers', JSON.stringify(customers));
+            };
+            
+            // --- GEMINI API CALL ---
+            async function callGemini(prompt, maxRetries = 3) {
+                const apiKey = ""; // Canvas will provide this
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (result.candidates && result.candidates[0] && result.candidates[0].content.parts[0]) {
+                            return result.candidates[0].content.parts[0].text;
+                        } else {
+                            throw new Error("Invalid response structure from Gemini API");
+                        }
+
+                    } catch (error) {
+                        console.error(`Attempt ${i + 1} failed:`, error);
+                        if (i === maxRetries - 1) {
+                           return "Sorry, I couldn't generate a response right now.";
+                        }
+                        await new Promise(res => setTimeout(res, 1000 * Math.pow(2, i)));
+                    }
+                }
+            }
+
+
+            // --- NAVIGATION ---
+            const links = {
+                'dashboard-link': 'dashboard-section',
+                'inventory-link': 'inventory-section',
+                'sales-link': 'sales-section',
+                'customers-link': 'customers-section'
+            };
+
+            Object.keys(links).forEach(linkId => {
+                document.getElementById(linkId).addEventListener('click', (e) => {
+                    e.preventDefault();
+                    Object.values(links).forEach(sectionId => document.getElementById(sectionId).classList.add('hidden'));
+                    Object.keys(links).forEach(id => document.getElementById(id).classList.remove('active'));
+                    document.getElementById(links[linkId]).classList.remove('hidden');
+                    e.target.classList.add('active');
+                });
+            });
+
+            // --- RENDERING ---
+            const renderInventory = () => {
+                const table = document.getElementById('inventory-table');
+                table.innerHTML = '';
+                inventory.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${item.category}</td>
+                        <td class="p-3 border-b">${item.brand}</td>
+                        <td class="p-3 border-b">${item.model}</td>
+                        <td class="p-3 border-b max-w-xs truncate" title="${item.description || ''}">${item.description || 'N/A'}</td>
+                        <td class="p-3 border-b">${item.stock}</td>
+                        <td class="p-3 border-b">$${item.cost}</td>
+                        <td class="p-3 border-b">$${item.price}</td>
+                        <td class="p-3 border-b">
+                            <button class="edit-product-btn text-blue-600 hover:underline mr-2" data-id="${item.id}">Edit</button>
+                            <button class="delete-product-btn text-red-600 hover:underline" data-id="${item.id}">Delete</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+            
+            const renderSales = () => {
+                const table = document.getElementById('sales-table');
+                table.innerHTML = '';
+                sales.forEach(sale => {
+                    const product = inventory.find(p => p.id === sale.productId);
+                    const customer = customers.find(c => c.id === sale.customerId);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
+                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
+                        <td class="p-3 border-b">$${sale.price}</td>
+                        <td class="p-3 border-b">${new Date(sale.date).toLocaleDateString()}</td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+            
+            const renderCustomers = () => {
+                const table = document.getElementById('customers-table');
+                table.innerHTML = '';
+                customers.forEach(customer => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${customer.name}</td>
+                        <td class="p-3 border-b">${customer.email}</td>
+                        <td class="p-3 border-b">${customer.phone}</td>
+                        <td class="p-3 border-b">
+                            <button class="edit-customer-btn text-blue-600 hover:underline mr-2" data-id="${customer.id}">Edit</button>
+                            <button class="delete-customer-btn text-red-600 hover:underline" data-id="${customer.id}">Delete</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+
+            const renderDashboard = () => {
+                document.getElementById('total-products').textContent = inventory.reduce((sum, item) => sum + item.stock, 0);
+                const totalSales = sales.reduce((sum, sale) => sum + sale.price, 0);
+                document.getElementById('total-sales').textContent = `$${totalSales.toLocaleString()}`;
+                const now = new Date();
+                const monthlySales = sales
+                    .filter(sale => {
+                        const saleDate = new Date(sale.date);
+                        return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
+                    })
+                    .reduce((sum, sale) => sum + sale.price, 0);
+                document.getElementById('monthly-sales').textContent = `$${monthlySales.toLocaleString()}`;
+                const totalInvestment = inventory.reduce((sum, item) => sum + (item.cost * item.stock), 0);
+                document.getElementById('total-investment').textContent = `$${totalInvestment.toLocaleString()}`;
+                document.getElementById('total-customers').textContent = customers.length;
+                const recentSalesTable = document.getElementById('recent-sales-table');
+                recentSalesTable.innerHTML = '';
+                sales.slice(-5).reverse().forEach(sale => {
+                    const product = inventory.find(p => p.id === sale.productId);
+                    const customer = customers.find(c => c.id === sale.customerId);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
+                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
+                        <td class="p-3 border-b">$${sale.price}</td>
+                        <td class="p-3 border-b">${new Date(sale.date).toLocaleDateString()}</td>
+                    `;
+                    recentSalesTable.appendChild(row);
+                });
+            };
+
+            // --- MODAL HANDLING ---
+            const productModal = document.getElementById('product-modal');
+            const saleModal = document.getElementById('sale-modal');
+            const customerModal = document.getElementById('customer-modal');
+            const analysisModal = document.getElementById('analysis-modal');
+            
+            document.getElementById('add-product-btn').addEventListener('click', () => {
+                document.getElementById('product-modal-title').textContent = 'Add Product';
+                document.getElementById('product-form').reset();
+                document.getElementById('product-id').value = '';
+                productModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('add-sale-btn').addEventListener('click', () => {
+                const productSelect = document.getElementById('sale-product');
+                const customerSelect = document.getElementById('sale-customer');
+                productSelect.innerHTML = '<option value="">Select a product</option>' + inventory.map(p => `<option value="${p.id}">${p.brand} ${p.model}</option>`).join('');
+                customerSelect.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                document.getElementById('sales-suggestion-container').classList.add('hidden');
+                saleModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('add-customer-btn').addEventListener('click', () => {
+                 document.getElementById('customer-modal-title').textContent = 'Add Customer';
+                document.getElementById('customer-form').reset();
+                document.getElementById('customer-id').value = '';
+                customerModal.classList.remove('hidden');
+            });
+
+            document.getElementById('cancel-product-btn').addEventListener('click', () => productModal.classList.add('hidden'));
+            document.getElementById('cancel-sale-btn').addEventListener('click', () => saleModal.classList.add('hidden'));
+            document.getElementById('cancel-customer-btn').addEventListener('click', () => customerModal.classList.add('hidden'));
+            document.getElementById('close-analysis-btn').addEventListener('click', () => analysisModal.classList.add('hidden'));
+
+            // --- FORM SUBMISSIONS ---
+            document.getElementById('product-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = document.getElementById('product-id').value;
+                const newProduct = {
+                    id: id ? parseInt(id) : Date.now(),
+                    category: document.getElementById('category').value,
+                    brand: document.getElementById('brand').value,
+                    model: document.getElementById('model').value,
+                    description: document.getElementById('description').value,
+                    stock: parseInt(document.getElementById('stock').value),
+                    cost: parseFloat(document.getElementById('cost').value),
+                    price: parseFloat(document.getElementById('price').value)
+                };
+
+                if (id) {
+                    inventory = inventory.map(p => p.id === newProduct.id ? newProduct : p);
+                } else {
+                    inventory.push(newProduct);
+                }
+                
+                saveData();
+                renderAll();
+                productModal.classList.add('hidden');
+            });
+            
+            document.getElementById('sale-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const productId = parseInt(document.getElementById('sale-product').value);
+                const product = inventory.find(p => p.id === productId);
+                
+                if (product && product.stock > 0) {
+                    const newSale = {
+                        id: Date.now(),
+                        productId: productId,
+                        customerId: parseInt(document.getElementById('sale-customer').value),
+                        price: product.price,
+                        date: new Date()
+                    };
+                    sales.push(newSale);
+                    product.stock--;
+                    saveData();
+                    renderAll();
+                    saleModal.classList.add('hidden');
+                } else {
+                    alert('Product is out of stock!');
+                }
+            });
+            
+            document.getElementById('customer-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const id = document.getElementById('customer-id').value;
+                const newCustomer = {
+                    id: id ? parseInt(id) : Date.now(),
+                    name: document.getElementById('customer-name').value,
+                    email: document.getElementById('customer-email').value,
+                    phone: document.getElementById('customer-phone').value
+                };
+
+                if (id) {
+                    customers = customers.map(c => c.id === newCustomer.id ? newCustomer : c);
+                } else {
+                    customers.push(newCustomer);
+                }
+                
+                saveData();
+                renderAll();
+                customerModal.classList.add('hidden');
+            });
+            
+            // --- EDIT & DELETE ---
+            document.getElementById('inventory-table').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.classList.contains('edit-product-btn')) {
+                    const product = inventory.find(p => p.id == id);
+                    document.getElementById('product-modal-title').textContent = 'Edit Product';
+                    document.getElementById('product-id').value = product.id;
+                    document.getElementById('category').value = product.category;
+                    document.getElementById('brand').value = product.brand;
+                    document.getElementById('model').value = product.model;
+                    document.getElementById('description').value = product.description || '';
+                    document.getElementById('stock').value = product.stock;
+                    document.getElementById('cost').value = product.cost;
+                    document.getElementById('price').value = product.price;
+                    productModal.classList.remove('hidden');
+                }
+                if (e.target.classList.contains('delete-product-btn')) {
+                    if (confirm('Are you sure you want to delete this product?')) {
+                        inventory = inventory.filter(p => p.id != id);
+                        saveData();
+                        renderAll();
+                    }
+                }
+            });
+            
+            document.getElementById('customers-table').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.classList.contains('edit-customer-btn')) {
+                    const customer = customers.find(c => c.id == id);
+                    document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+                    document.getElementById('customer-id').value = customer.id;
+                    document.getElementById('customer-name').value = customer.name;
+                    document.getElementById('customer-email').value = customer.email;
+                    document.getElementById('customer-phone').value = customer.phone;
+                    customerModal.classList.remove('hidden');
+                }
+                if (e.target.classList.contains('delete-customer-btn')) {
+                    if (confirm('Are you sure you want to delete this customer?')) {
+                        customers = customers.filter(c => c.id != id);
+                        saveData();
+                        renderAll();
+                    }
+                }
+            });
+
+            // --- GEMINI & ANALYSIS FEATURES ---
+            document.getElementById('generate-description-btn').addEventListener('click', async () => {
+                const category = document.getElementById('category').value;
+                const brand = document.getElementById('brand').value;
+                const model = document.getElementById('model').value;
+                if (!brand || !model) {
+                    alert('Please enter a brand and model first.');
+                    return;
+                }
+                const loader = document.getElementById('description-loader');
+                loader.classList.remove('hidden');
+                const prompt = `Write a short, exciting product description for a ${brand} ${model}, which is a ${category}. Make it sound appealing to a customer in a mobile shop.`;
+                const description = await callGemini(prompt);
+                document.getElementById('description').value = description;
+                loader.classList.add('hidden');
+            });
+            
+            document.getElementById('sale-product').addEventListener('change', async (e) => {
+                const productId = e.target.value;
+                const suggestionContainer = document.getElementById('sales-suggestion-container');
+                const suggestionDiv = document.getElementById('sales-suggestions');
+                const loader = document.getElementById('suggestion-loader');
+
+                if (!productId) {
+                    suggestionContainer.classList.add('hidden');
+                    return;
+                }
+
+                suggestionContainer.classList.remove('hidden');
+                suggestionDiv.innerHTML = '';
+                loader.classList.remove('hidden');
+                
+                const product = inventory.find(p => p.id == productId);
+                const prompt = `A customer is buying a ${product.brand} ${product.model}. Suggest 3 accessories they might also want to buy, like cases, screen protectors, or chargers. Provide the suggestions as a simple comma-separated list (e.g., "Silicone Case, Glass Screen Protector, Fast Charger").`;
+                
+                const suggestions = await callGemini(prompt);
+                loader.classList.add('hidden');
+                
+                suggestionDiv.innerHTML = suggestions.split(',').map(s => `<span class="bg-gray-200 text-gray-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">${s.trim()}</span>`).join('');
+            });
+
+            const showAnalysisLoader = () => {
+                const analysisContent = document.getElementById('analysis-content');
+                analysisContent.innerHTML = `<div class="flex justify-center items-center h-48"><div class="loader"></div></div>`;
+                analysisModal.classList.remove('hidden');
+            };
+
+            document.getElementById('view-sales-report-btn').addEventListener('click', async () => {
+                document.getElementById('analysis-modal-title').textContent = 'AI Sales Analysis';
+                showAnalysisLoader();
+
+                const salesWithCost = sales.map(sale => {
+                    const product = inventory.find(p => p.id === sale.productId);
+                    return {
+                        ...sale,
+                        cost: product ? product.cost : 0,
+                        productName: product ? `${product.brand} ${product.model}` : 'Unknown'
+                    };
+                });
+                
+                const prompt = `I am the owner of a mobile shop. Here is my sales data for the month: ${JSON.stringify(salesWithCost)}. Please provide a brief analysis of my sales performance. Include total revenue, total cost of goods sold, and gross profit. Also, identify the best-selling product. Present it in a clean, easy-to-read format.`;
+                
+                const report = await callGemini(prompt);
+                document.getElementById('analysis-content').textContent = report;
+            });
+
+            document.getElementById('view-inventory-report-btn').addEventListener('click', async () => {
+                document.getElementById('analysis-modal-title').textContent = 'AI Inventory Analysis';
+                showAnalysisLoader();
+                
+                const prompt = `I am the owner of a mobile shop. Here is my current inventory data: ${JSON.stringify(inventory)}. Please provide a brief analysis of my inventory. Identify the total value of my current stock. List any items with low stock (5 or fewer units). Highlight the product with the highest stock value. Present it in a clean, easy-to-read format.`;
+                
+                const report = await callGemini(prompt);
+                document.getElementById('analysis-content').textContent = report;
+            });
+
+            // --- INITIAL RENDER ---
+            const renderAll = () => {
+                renderInventory();
+                renderSales();
+                renderCustomers();
+                renderDashboard();
+            };
+
+            renderAll();
+        });
+    </script>
+</body>
+</html>
