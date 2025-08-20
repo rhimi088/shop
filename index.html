@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Shop Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -33,7 +34,8 @@
 </head>
 <body class="bg-gray-100">
 
-    <div class="flex h-screen">
+    <!-- Main App Section -->
+    <div id="app-section" class="flex h-screen w-full">
         <!-- Sidebar -->
         <aside class="w-64 bg-gray-800 text-white flex flex-col">
             <div class="p-6 text-2xl font-bold border-b border-gray-700">
@@ -41,9 +43,16 @@
             </div>
             <nav class="flex-1 p-4">
                 <a href="#" id="dashboard-link" class="sidebar-link active block py-3 px-4 rounded-lg font-semibold">Dashboard</a>
-                <a href="#" id="inventory-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Inventory</a>
+                <a href="#" id="reports-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Reports</a>
+                <div class="relative">
+                    <a href="#" id="inventory-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Inventory</a>
+                    <span id="low-stock-notification" class="hidden absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </div>
                 <a href="#" id="sales-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Sales</a>
+                <a href="#" id="repairs-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Repairs</a>
+                <a href="#" id="expenses-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Expenses</a>
                 <a href="#" id="customers-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Customers</a>
+                <a href="#" id="suppliers-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Suppliers</a>
             </nav>
         </aside>
 
@@ -94,17 +103,34 @@
                                     <th class="p-3">Date</th>
                                 </tr>
                             </thead>
-                            <tbody id="recent-sales-table">
-                                <!-- Recent sales will be populated here -->
-                            </tbody>
+                            <tbody id="recent-sales-table"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <div id="reports-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Reports</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Sales Over Time</h2>
+                        <canvas id="sales-chart"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Sales by Category</h2>
+                        <canvas id="category-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
             <div id="inventory-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Inventory</h1>
-                <button id="add-product-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Product</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Inventory</h1>
+                    <div>
+                        <button id="export-inventory-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
+                        <button id="add-product-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Product</button>
+                    </div>
+                </div>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                      <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -113,24 +139,27 @@
                                     <th class="p-3">Category</th>
                                     <th class="p-3">Brand</th>
                                     <th class="p-3">Name / Model</th>
-                                    <th class="p-3">Description</th>
                                     <th class="p-3">Stock</th>
                                     <th class="p-3">Cost</th>
                                     <th class="p-3">Price</th>
+                                    <th class="p-3">Supplier</th>
                                     <th class="p-3">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="inventory-table">
-                                <!-- Inventory items will be populated here -->
-                            </tbody>
+                            <tbody id="inventory-table"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
             <div id="sales-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Sales</h1>
-                <button id="add-sale-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Sale</button>
+                 <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Sales</h1>
+                     <div>
+                        <button id="export-sales-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
+                        <button id="add-sale-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Sale</button>
+                    </div>
+                </div>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -142,17 +171,62 @@
                                     <th class="p-3">Date</th>
                                 </tr>
                             </thead>
-                            <tbody id="sales-table">
-                                <!-- Sales will be populated here -->
-                            </tbody>
+                            <tbody id="sales-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="repairs-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Repairs</h1>
+                <button id="add-repair-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Repair Job</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Customer</th>
+                                    <th class="p-3">Device</th>
+                                    <th class="p-3">Issue</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3">Cost</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repairs-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="expenses-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Expenses</h1>
+                <button id="add-expense-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Expense</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Description</th>
+                                    <th class="p-3">Amount</th>
+                                    <th class="p-3">Date</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
             <div id="customers-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Customers</h1>
-                <button id="add-customer-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Customer</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold text-gray-800">Customers</h1>
+                     <div>
+                        <button id="export-customers-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
+                        <button id="add-customer-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Customer</button>
+                    </div>
+                </div>
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -164,9 +238,28 @@
                                     <th class="p-3">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="customers-table">
-                                <!-- Customers will be populated here -->
-                            </tbody>
+                            <tbody id="customers-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="suppliers-section" class="hidden">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">Suppliers</h1>
+                <button id="add-supplier-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Supplier</button>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-3">Name</th>
+                                    <th class="p-3">Contact Person</th>
+                                    <th class="p-3">Email</th>
+                                    <th class="p-3">Phone</th>
+                                    <th class="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliers-table"></tbody>
                         </table>
                     </div>
                 </div>
@@ -197,6 +290,10 @@
                 <div class="mb-4">
                     <label for="model" class="block text-gray-700">Product Name / Model</label>
                     <input type="text" id="model" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="supplier" class="block text-gray-700">Supplier</label>
+                    <select id="supplier" class="w-full p-2 border rounded-lg"></select>
                 </div>
                  <div class="mb-4">
                     <label for="description" class="block text-gray-700">Description</label>
@@ -253,6 +350,69 @@
         </div>
     </div>
 
+    <div id="repair-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 id="repair-modal-title" class="text-2xl font-bold mb-6">Add Repair Job</h2>
+            <form id="repair-form">
+                <input type="hidden" id="repair-id">
+                <div class="mb-4">
+                    <label for="repair-customer" class="block text-gray-700">Customer</label>
+                    <select id="repair-customer" class="w-full p-2 border rounded-lg" required></select>
+                </div>
+                <div class="mb-4">
+                    <label for="repair-device" class="block text-gray-700">Device</label>
+                    <input type="text" id="repair-device" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="repair-issue" class="block text-gray-700">Issue</label>
+                    <textarea id="repair-issue" class="w-full p-2 border rounded-lg" rows="3" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="repair-status" class="block text-gray-700">Status</label>
+                    <select id="repair-status" class="w-full p-2 border rounded-lg" required>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="repair-cost" class="block text-gray-700">Cost</label>
+                    <input type="number" step="0.01" id="repair-cost" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-repair-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="expense-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 id="expense-modal-title" class="text-2xl font-bold mb-6">Add Expense</h2>
+            <form id="expense-form">
+                <input type="hidden" id="expense-id">
+                <div class="mb-4">
+                    <label for="expense-description" class="block text-gray-700">Description</label>
+                    <input type="text" id="expense-description" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="expense-amount" class="block text-gray-700">Amount</label>
+                    <input type="number" step="0.01" id="expense-amount" class="w-full p-2 border rounded-lg" required>
+                </div>
+                 <div class="mb-4">
+                    <label for="expense-date" class="block text-gray-700">Date</label>
+                    <input type="date" id="expense-date" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-expense-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
         <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
             <h2 id="customer-modal-title" class="text-2xl font-bold mb-6">Add Customer</h2>
@@ -277,7 +437,46 @@
             </form>
         </div>
     </div>
+
+    <div id="supplier-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 id="supplier-modal-title" class="text-2xl font-bold mb-6">Add Supplier</h2>
+            <form id="supplier-form">
+                <input type="hidden" id="supplier-id">
+                <div class="mb-4">
+                    <label for="supplier-name" class="block text-gray-700">Name</label>
+                    <input type="text" id="supplier-name" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="supplier-contact" class="block text-gray-700">Contact Person</label>
+                    <input type="text" id="supplier-contact" class="w-full p-2 border rounded-lg">
+                </div>
+                <div class="mb-4">
+                    <label for="supplier-email" class="block text-gray-700">Email</label>
+                    <input type="email" id="supplier-email" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="supplier-phone" class="block text-gray-700">Phone</label>
+                    <input type="tel" id="supplier-phone" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" id="cancel-supplier-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
     
+    <div id="customer-history-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="customer-history-modal-title" class="text-2xl font-bold">Purchase History</h2>
+                <button id="close-customer-history-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div id="customer-history-content"></div>
+        </div>
+    </div>
+
     <div id="analysis-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -292,27 +491,49 @@
         </div>
     </div>
 
-    <script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBOOTnTWqTYyWTBo8uvuJVd85399hJwOA",
+            authDomain: "shop-1e233.firebaseapp.com",
+            projectId: "shop-1e233",
+            storageBucket: "shop-1e233.firebasestorage.app",
+            messagingSenderId: "674505750349",
+            appId: "1:674505750349:web:ea131ee81b27d5b960a904",
+            measurementId: "G-S65ER0NBR4"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth();
+        const analytics = getAnalytics(app);
+
+        signInAnonymously(auth).catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             // --- DATA MANAGEMENT ---
-            let inventory = JSON.parse(localStorage.getItem('inventory')) || [
-                { id: 1, category: 'Mobile Phone', brand: 'Apple', model: 'iPhone 14', description: 'The latest iPhone with an amazing camera.', stock: 10, cost: 700, price: 999 },
-                { id: 2, category: 'Mobile Phone', brand: 'Samsung', model: 'Galaxy S23', description: 'A powerful Android phone with a stunning display.', stock: 15, cost: 630, price: 899 },
-                { id: 3, category: 'Mobile Phone', brand: 'Google', model: 'Pixel 7', description: 'The smartest smartphone with Google AI.', stock: 8, cost: 490, price: 699 },
-                { id: 4, category: 'Headphones', brand: 'Sony', model: 'WH-1000XM5', description: 'Industry-leading noise canceling headphones.', stock: 12, cost: 300, price: 399 }
-            ];
-            let sales = JSON.parse(localStorage.getItem('sales')) || [];
-            let customers = JSON.parse(localStorage.getItem('customers')) || [
-                 { id: 1, name: 'John Doe', email: 'john@example.com', phone: '123-456-7890' },
-                 { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '098-765-4321' }
-            ];
-
-            const saveData = () => {
-                localStorage.setItem('inventory', JSON.stringify(inventory));
-                localStorage.setItem('sales', JSON.stringify(sales));
-                localStorage.setItem('customers', JSON.stringify(customers));
-            };
+            let inventory = [];
+            let sales = [];
+            let customers = [];
+            let expenses = [];
+            let suppliers = [];
+            let repairs = [];
             
+            // --- CHART INSTANCES ---
+            let salesChartInstance;
+            let categoryChartInstance;
+
             // --- GEMINI API CALL ---
             async function callGemini(prompt, maxRetries = 3) {
                 const apiKey = ""; // Canvas will provide this
@@ -355,9 +576,13 @@
             // --- NAVIGATION ---
             const links = {
                 'dashboard-link': 'dashboard-section',
+                'reports-link': 'reports-section',
                 'inventory-link': 'inventory-section',
                 'sales-link': 'sales-section',
-                'customers-link': 'customers-section'
+                'repairs-link': 'repairs-section',
+                'expenses-link': 'expenses-section',
+                'customers-link': 'customers-section',
+                'suppliers-link': 'suppliers-section'
             };
 
             Object.keys(links).forEach(linkId => {
@@ -367,23 +592,39 @@
                     Object.keys(links).forEach(id => document.getElementById(id).classList.remove('active'));
                     document.getElementById(links[linkId]).classList.remove('hidden');
                     e.target.classList.add('active');
+                    if(links[linkId] === 'reports-section') {
+                        renderReports();
+                    }
                 });
             });
 
-            // --- RENDERING ---
+            // --- RENDERING & UI UPDATES ---
+             const updateLowStockNotification = () => {
+                const notificationBadge = document.getElementById('low-stock-notification');
+                const lowStockItems = inventory.filter(item => item.stock <= 5);
+                if (lowStockItems.length > 0) {
+                    notificationBadge.textContent = lowStockItems.length;
+                    notificationBadge.classList.remove('hidden');
+                } else {
+                    notificationBadge.classList.add('hidden');
+                }
+            };
+
             const renderInventory = () => {
                 const table = document.getElementById('inventory-table');
                 table.innerHTML = '';
                 inventory.forEach(item => {
+                    const supplier = suppliers.find(s => s.id === item.supplierId);
                     const row = document.createElement('tr');
+                    row.className = item.stock <= 5 ? 'bg-red-100' : '';
                     row.innerHTML = `
                         <td class="p-3 border-b">${item.category}</td>
                         <td class="p-3 border-b">${item.brand}</td>
                         <td class="p-3 border-b">${item.model}</td>
-                        <td class="p-3 border-b max-w-xs truncate" title="${item.description || ''}">${item.description || 'N/A'}</td>
                         <td class="p-3 border-b">${item.stock}</td>
                         <td class="p-3 border-b">$${item.cost}</td>
                         <td class="p-3 border-b">$${item.price}</td>
+                        <td class="p-3 border-b">${supplier ? supplier.name : 'N/A'}</td>
                         <td class="p-3 border-b">
                             <button class="edit-product-btn text-blue-600 hover:underline mr-2" data-id="${item.id}">Edit</button>
                             <button class="delete-product-btn text-red-600 hover:underline" data-id="${item.id}">Delete</button>
@@ -404,7 +645,46 @@
                         <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
                         <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
                         <td class="p-3 border-b">$${sale.price}</td>
-                        <td class="p-3 border-b">${new Date(sale.date).toLocaleDateString()}</td>
+                        <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+
+            const renderRepairs = () => {
+                const table = document.getElementById('repairs-table');
+                table.innerHTML = '';
+                repairs.forEach(repair => {
+                    const customer = customers.find(c => c.id === repair.customerId);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
+                        <td class="p-3 border-b">${repair.device}</td>
+                        <td class="p-3 border-b max-w-xs truncate" title="${repair.issue}">${repair.issue}</td>
+                        <td class="p-3 border-b">${repair.status}</td>
+                        <td class="p-3 border-b">$${repair.cost}</td>
+                        <td class="p-3 border-b">
+                            <button class="edit-repair-btn text-blue-600 hover:underline mr-2" data-id="${repair.id}">Edit</button>
+                            <button class="delete-repair-btn text-red-600 hover:underline" data-id="${repair.id}">Delete</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+
+            const renderExpenses = () => {
+                const table = document.getElementById('expenses-table');
+                table.innerHTML = '';
+                expenses.forEach(expense => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${expense.description}</td>
+                        <td class="p-3 border-b">$${expense.amount}</td>
+                        <td class="p-3 border-b">${new Date(expense.date).toLocaleDateString()}</td>
+                        <td class="p-3 border-b">
+                            <button class="edit-expense-btn text-blue-600 hover:underline mr-2" data-id="${expense.id}">Edit</button>
+                            <button class="delete-expense-btn text-red-600 hover:underline" data-id="${expense.id}">Delete</button>
+                        </td>
                     `;
                     table.appendChild(row);
                 });
@@ -420,8 +700,28 @@
                         <td class="p-3 border-b">${customer.email}</td>
                         <td class="p-3 border-b">${customer.phone}</td>
                         <td class="p-3 border-b">
+                            <button class="view-history-btn text-green-600 hover:underline mr-2" data-id="${customer.id}">History</button>
                             <button class="edit-customer-btn text-blue-600 hover:underline mr-2" data-id="${customer.id}">Edit</button>
                             <button class="delete-customer-btn text-red-600 hover:underline" data-id="${customer.id}">Delete</button>
+                        </td>
+                    `;
+                    table.appendChild(row);
+                });
+            };
+
+            const renderSuppliers = () => {
+                const table = document.getElementById('suppliers-table');
+                table.innerHTML = '';
+                suppliers.forEach(supplier => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-3 border-b">${supplier.name}</td>
+                        <td class="p-3 border-b">${supplier.contact || 'N/A'}</td>
+                        <td class="p-3 border-b">${supplier.email}</td>
+                        <td class="p-3 border-b">${supplier.phone}</td>
+                        <td class="p-3 border-b">
+                            <button class="edit-supplier-btn text-blue-600 hover:underline mr-2" data-id="${supplier.id}">Edit</button>
+                            <button class="delete-supplier-btn text-red-600 hover:underline" data-id="${supplier.id}">Delete</button>
                         </td>
                     `;
                     table.appendChild(row);
@@ -435,7 +735,7 @@
                 const now = new Date();
                 const monthlySales = sales
                     .filter(sale => {
-                        const saleDate = new Date(sale.date);
+                        const saleDate = new Date(sale.date.seconds * 1000);
                         return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
                     })
                     .reduce((sum, sale) => sum + sale.price, 0);
@@ -453,9 +753,60 @@
                         <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
                         <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
                         <td class="p-3 border-b">$${sale.price}</td>
-                        <td class="p-3 border-b">${new Date(sale.date).toLocaleDateString()}</td>
+                        <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
                     `;
                     recentSalesTable.appendChild(row);
+                });
+            };
+
+            const renderReports = () => {
+                const salesByDate = sales.reduce((acc, sale) => {
+                    const date = new Date(sale.date.seconds * 1000).toLocaleDateString();
+                    acc[date] = (acc[date] || 0) + sale.price;
+                    return acc;
+                }, {});
+                
+                const salesCtx = document.getElementById('sales-chart').getContext('2d');
+                if(salesChartInstance) salesChartInstance.destroy();
+                salesChartInstance = new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(salesByDate),
+                        datasets: [{
+                            label: 'Sales',
+                            data: Object.values(salesByDate),
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    }
+                });
+
+                const salesByCategory = sales.reduce((acc, sale) => {
+                    const product = inventory.find(p => p.id === sale.productId);
+                    if (product) {
+                        acc[product.category] = (acc[product.category] || 0) + sale.price;
+                    }
+                    return acc;
+                }, {});
+
+                const categoryCtx = document.getElementById('category-chart').getContext('2d');
+                if(categoryChartInstance) categoryChartInstance.destroy();
+                categoryChartInstance = new Chart(categoryCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(salesByCategory),
+                        datasets: [{
+                            label: 'Sales',
+                            data: Object.values(salesByCategory),
+                            backgroundColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 205, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)'
+                            ]
+                        }]
+                    }
                 });
             };
 
@@ -463,12 +814,18 @@
             const productModal = document.getElementById('product-modal');
             const saleModal = document.getElementById('sale-modal');
             const customerModal = document.getElementById('customer-modal');
+            const expenseModal = document.getElementById('expense-modal');
+            const supplierModal = document.getElementById('supplier-modal');
+            const repairModal = document.getElementById('repair-modal');
+            const customerHistoryModal = document.getElementById('customer-history-modal');
             const analysisModal = document.getElementById('analysis-modal');
             
             document.getElementById('add-product-btn').addEventListener('click', () => {
                 document.getElementById('product-modal-title').textContent = 'Add Product';
                 document.getElementById('product-form').reset();
                 document.getElementById('product-id').value = '';
+                const supplierSelect = document.getElementById('supplier');
+                supplierSelect.innerHTML = '<option value="">Select Supplier</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
                 productModal.classList.remove('hidden');
             });
             
@@ -480,6 +837,23 @@
                 document.getElementById('sales-suggestion-container').classList.add('hidden');
                 saleModal.classList.remove('hidden');
             });
+
+            document.getElementById('add-repair-btn').addEventListener('click', () => {
+                document.getElementById('repair-modal-title').textContent = 'Add Repair Job';
+                document.getElementById('repair-form').reset();
+                document.getElementById('repair-id').value = '';
+                const customerSelect = document.getElementById('repair-customer');
+                customerSelect.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                repairModal.classList.remove('hidden');
+            });
+
+            document.getElementById('add-expense-btn').addEventListener('click', () => {
+                document.getElementById('expense-modal-title').textContent = 'Add Expense';
+                document.getElementById('expense-form').reset();
+                document.getElementById('expense-id').value = '';
+                document.getElementById('expense-date').valueAsDate = new Date();
+                expenseModal.classList.remove('hidden');
+            });
             
             document.getElementById('add-customer-btn').addEventListener('click', () => {
                  document.getElementById('customer-modal-title').textContent = 'Add Customer';
@@ -488,20 +862,31 @@
                 customerModal.classList.remove('hidden');
             });
 
+            document.getElementById('add-supplier-btn').addEventListener('click', () => {
+                document.getElementById('supplier-modal-title').textContent = 'Add Supplier';
+                document.getElementById('supplier-form').reset();
+                document.getElementById('supplier-id').value = '';
+                supplierModal.classList.remove('hidden');
+            });
+
             document.getElementById('cancel-product-btn').addEventListener('click', () => productModal.classList.add('hidden'));
             document.getElementById('cancel-sale-btn').addEventListener('click', () => saleModal.classList.add('hidden'));
+            document.getElementById('cancel-repair-btn').addEventListener('click', () => repairModal.classList.add('hidden'));
+            document.getElementById('cancel-expense-btn').addEventListener('click', () => expenseModal.classList.add('hidden'));
             document.getElementById('cancel-customer-btn').addEventListener('click', () => customerModal.classList.add('hidden'));
+            document.getElementById('cancel-supplier-btn').addEventListener('click', () => supplierModal.classList.add('hidden'));
+            document.getElementById('close-customer-history-btn').addEventListener('click', () => customerHistoryModal.classList.add('hidden'));
             document.getElementById('close-analysis-btn').addEventListener('click', () => analysisModal.classList.add('hidden'));
 
             // --- FORM SUBMISSIONS ---
-            document.getElementById('product-form').addEventListener('submit', (e) => {
+            document.getElementById('product-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const id = document.getElementById('product-id').value;
                 const newProduct = {
-                    id: id ? parseInt(id) : Date.now(),
                     category: document.getElementById('category').value,
                     brand: document.getElementById('brand').value,
                     model: document.getElementById('model').value,
+                    supplierId: document.getElementById('supplier').value || null,
                     description: document.getElementById('description').value,
                     stock: parseInt(document.getElementById('stock').value),
                     cost: parseFloat(document.getElementById('cost').value),
@@ -509,58 +894,110 @@
                 };
 
                 if (id) {
-                    inventory = inventory.map(p => p.id === newProduct.id ? newProduct : p);
+                    await setDoc(doc(db, "inventory", id), newProduct);
                 } else {
-                    inventory.push(newProduct);
+                    await addDoc(collection(db, "inventory"), newProduct);
                 }
                 
-                saveData();
-                renderAll();
                 productModal.classList.add('hidden');
             });
             
-            document.getElementById('sale-form').addEventListener('submit', (e) => {
+            document.getElementById('sale-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const productId = parseInt(document.getElementById('sale-product').value);
+                const productId = document.getElementById('sale-product').value;
+                const productRef = doc(db, "inventory", productId);
                 const product = inventory.find(p => p.id === productId);
                 
                 if (product && product.stock > 0) {
                     const newSale = {
-                        id: Date.now(),
                         productId: productId,
-                        customerId: parseInt(document.getElementById('sale-customer').value),
+                        customerId: document.getElementById('sale-customer').value,
                         price: product.price,
                         date: new Date()
                     };
-                    sales.push(newSale);
-                    product.stock--;
-                    saveData();
-                    renderAll();
+                    await addDoc(collection(db, "sales"), newSale);
+                    await updateDoc(productRef, {
+                        stock: product.stock - 1
+                    });
                     saleModal.classList.add('hidden');
                 } else {
                     alert('Product is out of stock!');
                 }
             });
+
+            document.getElementById('repair-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('repair-id').value;
+                const newRepair = {
+                    customerId: document.getElementById('repair-customer').value,
+                    device: document.getElementById('repair-device').value,
+                    issue: document.getElementById('repair-issue').value,
+                    status: document.getElementById('repair-status').value,
+                    cost: parseFloat(document.getElementById('repair-cost').value)
+                };
+
+                if (id) {
+                    await setDoc(doc(db, "repairs", id), newRepair);
+                } else {
+                    await addDoc(collection(db, "repairs"), newRepair);
+                }
+                
+                repairModal.classList.add('hidden');
+            });
+
+             document.getElementById('expense-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('expense-id').value;
+                const newExpense = {
+                    description: document.getElementById('expense-description').value,
+                    amount: parseFloat(document.getElementById('expense-amount').value),
+                    date: new Date(document.getElementById('expense-date').value)
+                };
+
+                if (id) {
+                    await setDoc(doc(db, "expenses", id), newExpense);
+                } else {
+                    await addDoc(collection(db, "expenses"), newExpense);
+                }
+                
+                expenseModal.classList.add('hidden');
+            });
             
-            document.getElementById('customer-form').addEventListener('submit', (e) => {
+            document.getElementById('customer-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const id = document.getElementById('customer-id').value;
                 const newCustomer = {
-                    id: id ? parseInt(id) : Date.now(),
                     name: document.getElementById('customer-name').value,
                     email: document.getElementById('customer-email').value,
                     phone: document.getElementById('customer-phone').value
                 };
 
                 if (id) {
-                    customers = customers.map(c => c.id === newCustomer.id ? newCustomer : c);
+                    await setDoc(doc(db, "customers", id), newCustomer);
                 } else {
-                    customers.push(newCustomer);
+                    await addDoc(collection(db, "customers"), newCustomer);
                 }
                 
-                saveData();
-                renderAll();
                 customerModal.classList.add('hidden');
+            });
+
+            document.getElementById('supplier-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('supplier-id').value;
+                const newSupplier = {
+                    name: document.getElementById('supplier-name').value,
+                    contact: document.getElementById('supplier-contact').value,
+                    email: document.getElementById('supplier-email').value,
+                    phone: document.getElementById('supplier-phone').value
+                };
+
+                if (id) {
+                    await setDoc(doc(db, "suppliers", id), newSupplier);
+                } else {
+                    await addDoc(collection(db, "suppliers"), newSupplier);
+                }
+                
+                supplierModal.classList.add('hidden');
             });
             
             // --- EDIT & DELETE ---
@@ -573,6 +1010,8 @@
                     document.getElementById('category').value = product.category;
                     document.getElementById('brand').value = product.brand;
                     document.getElementById('model').value = product.model;
+                    const supplierSelect = document.getElementById('supplier');
+                    supplierSelect.innerHTML = '<option value="">Select Supplier</option>' + suppliers.map(s => `<option value="${s.id}" ${product.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
                     document.getElementById('description').value = product.description || '';
                     document.getElementById('stock').value = product.stock;
                     document.getElementById('cost').value = product.cost;
@@ -581,9 +1020,46 @@
                 }
                 if (e.target.classList.contains('delete-product-btn')) {
                     if (confirm('Are you sure you want to delete this product?')) {
-                        inventory = inventory.filter(p => p.id != id);
-                        saveData();
-                        renderAll();
+                        deleteDoc(doc(db, "inventory", id));
+                    }
+                }
+            });
+
+            document.getElementById('repairs-table').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.classList.contains('edit-repair-btn')) {
+                    const repair = repairs.find(r => r.id == id);
+                    document.getElementById('repair-modal-title').textContent = 'Edit Repair Job';
+                    document.getElementById('repair-id').value = repair.id;
+                    const customerSelect = document.getElementById('repair-customer');
+                    customerSelect.innerHTML = customers.map(c => `<option value="${c.id}" ${repair.customerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+                    document.getElementById('repair-device').value = repair.device;
+                    document.getElementById('repair-issue').value = repair.issue;
+                    document.getElementById('repair-status').value = repair.status;
+                    document.getElementById('repair-cost').value = repair.cost;
+                    repairModal.classList.remove('hidden');
+                }
+                if (e.target.classList.contains('delete-repair-btn')) {
+                    if (confirm('Are you sure you want to delete this repair job?')) {
+                        deleteDoc(doc(db, "repairs", id));
+                    }
+                }
+            });
+
+            document.getElementById('expenses-table').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.classList.contains('edit-expense-btn')) {
+                    const expense = expenses.find(ex => ex.id == id);
+                    document.getElementById('expense-modal-title').textContent = 'Edit Expense';
+                    document.getElementById('expense-id').value = expense.id;
+                    document.getElementById('expense-description').value = expense.description;
+                    document.getElementById('expense-amount').value = expense.amount;
+                    document.getElementById('expense-date').value = expense.date;
+                    expenseModal.classList.remove('hidden');
+                }
+                if (e.target.classList.contains('delete-expense-btn')) {
+                    if (confirm('Are you sure you want to delete this expense?')) {
+                       deleteDoc(doc(db, "expenses", id));
                     }
                 }
             });
@@ -601,9 +1077,61 @@
                 }
                 if (e.target.classList.contains('delete-customer-btn')) {
                     if (confirm('Are you sure you want to delete this customer?')) {
-                        customers = customers.filter(c => c.id != id);
-                        saveData();
-                        renderAll();
+                        deleteDoc(doc(db, "customers", id));
+                    }
+                }
+                if (e.target.classList.contains('view-history-btn')) {
+                    const customer = customers.find(c => c.id == id);
+                    const customerSales = sales.filter(s => s.customerId == id);
+                    const historyContent = document.getElementById('customer-history-content');
+                    document.getElementById('customer-history-modal-title').textContent = `Purchase History for ${customer.name}`;
+                    
+                    if (customerSales.length === 0) {
+                        historyContent.innerHTML = '<p>No purchases found for this customer.</p>';
+                    } else {
+                        historyContent.innerHTML = `
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="bg-gray-200">
+                                        <th class="p-3">Product</th>
+                                        <th class="p-3">Price</th>
+                                        <th class="p-3">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${customerSales.map(sale => {
+                                        const product = inventory.find(p => p.id === sale.productId);
+                                        return `
+                                            <tr>
+                                                <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
+                                                <td class="p-3 border-b">$${sale.price}</td>
+                                                <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    }
+                    customerHistoryModal.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('suppliers-table').addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.classList.contains('edit-supplier-btn')) {
+                    const supplier = suppliers.find(s => s.id == id);
+                    document.getElementById('supplier-modal-title').textContent = 'Edit Supplier';
+                    document.getElementById('supplier-id').value = supplier.id;
+                    document.getElementById('supplier-name').value = supplier.name;
+                    document.getElementById('supplier-contact').value = supplier.contact;
+                    document.getElementById('supplier-email').value = supplier.email;
+                    document.getElementById('supplier-phone').value = supplier.phone;
+                    supplierModal.classList.remove('hidden');
+                }
+                if (e.target.classList.contains('delete-supplier-btn')) {
+                    if (confirm('Are you sure you want to delete this supplier?')) {
+                        deleteDoc(doc(db, "suppliers", id));
                     }
                 }
             });
@@ -661,14 +1189,10 @@
 
                 const salesWithCost = sales.map(sale => {
                     const product = inventory.find(p => p.id === sale.productId);
-                    return {
-                        ...sale,
-                        cost: product ? product.cost : 0,
-                        productName: product ? `${product.brand} ${product.model}` : 'Unknown'
-                    };
+                    return { ...sale, cost: product ? product.cost : 0 };
                 });
                 
-                const prompt = `I am the owner of a mobile shop. Here is my sales data for the month: ${JSON.stringify(salesWithCost)}. Please provide a brief analysis of my sales performance. Include total revenue, total cost of goods sold, and gross profit. Also, identify the best-selling product. Present it in a clean, easy-to-read format.`;
+                const prompt = `I am the owner of a mobile shop. Here is my sales data: ${JSON.stringify(salesWithCost)}. And here are my expenses: ${JSON.stringify(expenses)}. Please provide a brief analysis of my business performance. Include total revenue, total cost of goods sold, gross profit, total expenses, and net profit. Also, identify the best-selling product. Present it in a clean, easy-to-read format.`;
                 
                 const report = await callGemini(prompt);
                 document.getElementById('analysis-content').textContent = report;
@@ -678,21 +1202,87 @@
                 document.getElementById('analysis-modal-title').textContent = 'AI Inventory Analysis';
                 showAnalysisLoader();
                 
-                const prompt = `I am the owner of a mobile shop. Here is my current inventory data: ${JSON.stringify(inventory)}. Please provide a brief analysis of my inventory. Identify the total value of my current stock. List any items with low stock (5 or fewer units). Highlight the product with the highest stock value. Present it in a clean, easy-to-read format.`;
+                const prompt = `I am the owner of a mobile shop. Here is my current inventory data: ${JSON.stringify(inventory)}. Please provide a brief analysis of my inventory. Identify the total value of my current stock (based on cost). List any items with low stock (5 or fewer units). Highlight the product with the highest stock value. Present it in a clean, easy-to-read format.`;
                 
                 const report = await callGemini(prompt);
                 document.getElementById('analysis-content').textContent = report;
             });
 
-            // --- INITIAL RENDER ---
+            // --- CSV EXPORT ---
+            function exportToCsv(filename, rows) {
+                if (rows.length === 0) return;
+                const processRow = row => Object.values(row).map(val => `"${(val === null || val === undefined) ? '' : String(val).replace(/"/g, '""')}"`).join(',');
+                const csvContent = "data:text/csv;charset=utf-8," + [Object.keys(rows[0]).join(',')].concat(rows.map(processRow)).join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            document.getElementById('export-inventory-btn').addEventListener('click', () => {
+                exportToCsv('inventory.csv', inventory.map(item => {
+                    const supplier = suppliers.find(s => s.id === item.supplierId);
+                    return {...item, supplierName: supplier ? supplier.name : ''};
+                }));
+            });
+
+            document.getElementById('export-sales-btn').addEventListener('click', () => {
+                exportToCsv('sales.csv', sales.map(sale => {
+                    const product = inventory.find(p => p.id === sale.productId);
+                    const customer = customers.find(c => c.id === sale.customerId);
+                    return {
+                        saleId: sale.id,
+                        product: product ? `${product.brand} ${product.model}` : 'N/A',
+                        customer: customer ? customer.name : 'N/A',
+                        price: sale.price,
+                        date: new Date(sale.date.seconds * 1000).toLocaleDateString()
+                    };
+                }));
+            });
+
+            document.getElementById('export-customers-btn').addEventListener('click', () => {
+                exportToCsv('customers.csv', customers);
+            });
+
+            // --- REAL-TIME LISTENERS (FIRESTORE) ---
             const renderAll = () => {
                 renderInventory();
                 renderSales();
+                renderRepairs();
+                renderExpenses();
                 renderCustomers();
+                renderSuppliers();
                 renderDashboard();
+                updateLowStockNotification();
             };
 
-            renderAll();
+            onSnapshot(collection(db, "inventory"), (snapshot) => {
+                inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "sales"), (snapshot) => {
+                sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "customers"), (snapshot) => {
+                customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "expenses"), (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "suppliers"), (snapshot) => {
+                suppliers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "repairs"), (snapshot) => {
+                repairs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
         });
     </script>
 </body>
