@@ -1,1289 +1,823 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Shop Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .sidebar-link {
-            transition: all 0.2s ease-in-out;
-        }
-        .sidebar-link:hover, .sidebar-link.active {
-            background-color: #38a169;
-            color: white;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
+import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { initializeApp } from 'firebase/app';
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, query, where, setDoc, getDoc } from 'firebase/firestore';
+import { Home, Package, ShoppingCart, Users, BarChart2, DollarSign, List, Calendar, Settings, LogOut, Moon, Sun, Menu, X } from 'lucide-react';
 
-    <!-- Main App Section -->
-    <div id="app-section" class="flex h-screen w-full">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-gray-800 text-white flex flex-col">
-            <div class="p-6 text-2xl font-bold border-b border-gray-700">
-                Mobile Shop
-            </div>
-            <nav class="flex-1 p-4">
-                <a href="#" id="dashboard-link" class="sidebar-link active block py-3 px-4 rounded-lg font-semibold">Dashboard</a>
-                <a href="#" id="reports-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Reports</a>
-                <div class="relative">
-                    <a href="#" id="inventory-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Inventory</a>
-                    <span id="low-stock-notification" class="hidden absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
-                </div>
-                <a href="#" id="sales-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Sales</a>
-                <a href="#" id="repairs-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Repairs</a>
-                <a href="#" id="expenses-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Expenses</a>
-                <a href="#" id="customers-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Customers</a>
-                <a href="#" id="suppliers-link" class="sidebar-link block py-3 px-4 rounded-lg font-semibold">Suppliers</a>
-            </nav>
-        </aside>
+// --- FIREBASE CONFIG ---
+// This configuration is provided for demonstration. 
+// In a real application, these values would be securely managed.
+const firebaseConfig = typeof __firebase_config !== 'undefined' 
+    ? JSON.parse(__firebase_config)
+    : {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
+      };
 
-        <!-- Main Content -->
-        <main class="flex-1 p-8 overflow-y-auto">
-            <div id="dashboard-section">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h1>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700">Total Products</h2>
-                        <p id="total-products" class="text-4xl font-bold text-green-600 mt-2">0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700">Total Sales</h2>
-                        <p id="total-sales" class="text-4xl font-bold text-green-600 mt-2">$0</p>
-                    </div>
-                     <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700">This Month's Sales</h2>
-                        <p id="monthly-sales" class="text-4xl font-bold text-green-600 mt-2">$0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700">Total Investment</h2>
-                        <p id="total-investment" class="text-4xl font-bold text-green-600 mt-2">$0</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700">Total Customers</h2>
-                        <p id="total-customers" class="text-4xl font-bold text-green-600 mt-2">0</p>
-                    </div>
-                </div>
-                
-                 <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">✨ Quick AI Analysis</h2>
-                    <div class="flex space-x-4">
-                        <button id="view-sales-report-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">Generate Sales Analysis</button>
-                        <button id="view-inventory-report-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">Generate Inventory Analysis</button>
-                    </div>
-                </div>
+// --- APP INITIALIZATION ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-                <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Recent Sales</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Product</th>
-                                    <th class="p-3">Customer</th>
-                                    <th class="p-3">Price</th>
-                                    <th class="p-3">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-sales-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+// --- APP ID ---
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'rahimi-mobile-manager';
 
-            <div id="reports-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Reports</h1>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Sales Over Time</h2>
-                        <canvas id="sales-chart"></canvas>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Sales by Category</h2>
-                        <canvas id="category-chart"></canvas>
-                    </div>
-                </div>
-            </div>
+// --- TRANSLATION DATA ---
+const translations = {
+  en: {
+    // General
+    dashboard: 'Dashboard',
+    products: 'Products',
+    sales: 'Sales',
+    expenses: 'Expenses',
+    customers: 'Customers',
+    stock: 'Stock/Inventory',
+    reports: 'Reports',
+    tasks: 'Tasks & Reminders',
+    settings: 'Settings',
+    logout: 'Logout',
+    rahimiMobileManager: 'Rahimi Mobile Manager',
+    // Dashboard
+    dailyOverview: 'Daily Overview',
+    salesToday: 'Sales Today',
+    profitToday: 'Profit Today',
+    expensesToday: 'Expenses Today',
+    topSellingProducts: 'Top Selling Products',
+    lowStockAlerts: 'Low Stock Alerts',
+    // Products
+    manageProducts: 'Manage Products',
+    addProduct: 'Add Product',
+    productName: 'Product Name',
+    purchasePrice: 'Purchase Price',
+    sellingPrice: 'Selling Price',
+    quantity: 'Quantity',
+    category: 'Category',
+    actions: 'Actions',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    cancel: 'Cancel',
+    // Sales
+    newSale: 'New Sale',
+    searchProducts: 'Search products...',
+    invoice: 'Invoice',
+    qty: 'Qty',
+    price: 'Price',
+    total: 'Total',
+    subtotal: 'Subtotal',
+    discount: 'Discount',
+    tax: 'Tax',
+    grandTotal: 'Grand Total',
+    completeSale: 'Complete Sale',
+  },
+  ps: {
+    // General
+    dashboard: 'ډشبورډ',
+    products: 'محصولات',
+    sales: 'پلورنې',
+    expenses: 'لګښتونه',
+    customers: 'پیرودونکي',
+    stock: 'ګدام',
+    reports: 'راپورونه',
+    tasks: 'دندې او یادونې',
+    settings: 'ترتیبات',
+    logout: 'وتل',
+    rahimiMobileManager: 'رحیمي موبایل مدیر',
+    // Dashboard
+    dailyOverview: 'ورځنی کتنه',
+    salesToday: 'نننۍ پلورنې',
+    profitToday: 'نننۍ ګټه',
+    expensesToday: 'ننني لګښتونه',
+    topSellingProducts: 'غوره پلورل شوي محصولات',
+    lowStockAlerts: 'د کم মজودۍ خبرتیا',
+    // Products
+    manageProducts: 'د محصولاتو مدیریت',
+    addProduct: 'نوی محصول اضافه کړئ',
+    productName: 'د محصول نوم',
+    purchasePrice: 'د پیرودلو بیه',
+    sellingPrice: 'د پلورلو بیه',
+    quantity: 'مقدار',
+    category: 'وېشنيزه',
+    actions: 'کړنې',
+    edit: 'سمول',
+    delete: 'ړنګول',
+    save: 'خوندي کول',
+    cancel: 'لغوه کول',
+    // Sales
+    newSale: 'نوی پلور',
+    searchProducts: 'محصولات وپلټئ...',
+    invoice: 'بیل',
+    qty: 'مقدار',
+    price: 'بیه',
+    total: 'ټول',
+    subtotal: 'فرعي ټول',
+    discount: 'تخفیف',
+    tax: 'مالیه',
+    grandTotal: 'لوی ټول',
+    completeSale: 'پلور بشپړ کړئ',
+  },
+};
 
-            <div id="inventory-section" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800">Inventory</h1>
-                    <div>
-                        <button id="export-inventory-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
-                        <button id="add-product-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Product</button>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Category</th>
-                                    <th class="p-3">Brand</th>
-                                    <th class="p-3">Name / Model</th>
-                                    <th class="p-3">Stock</th>
-                                    <th class="p-3">Cost</th>
-                                    <th class="p-3">Price</th>
-                                    <th class="p-3">Supplier</th>
-                                    <th class="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventory-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+// --- CONTEXTS ---
+const AuthContext = createContext(null);
+const LanguageContext = createContext(null);
+const ThemeContext = createContext(null);
 
-            <div id="sales-section" class="hidden">
-                 <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800">Sales</h1>
-                     <div>
-                        <button id="export-sales-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
-                        <button id="add-sale-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Sale</button>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Product</th>
-                                    <th class="p-3">Customer</th>
-                                    <th class="p-3">Price</th>
-                                    <th class="p-3">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sales-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="repairs-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Repairs</h1>
-                <button id="add-repair-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Repair Job</button>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Customer</th>
-                                    <th class="p-3">Device</th>
-                                    <th class="p-3">Issue</th>
-                                    <th class="p-3">Status</th>
-                                    <th class="p-3">Cost</th>
-                                    <th class="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="repairs-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+// --- HOOKS ---
+const useAuth = () => useContext(AuthContext);
+const useLanguage = () => {
+    const context = useContext(LanguageContext);
+    if (!context) {
+        throw new Error("useLanguage must be used within a LanguageProvider");
+    }
+    const { language, setLanguage, t } = context;
+    return { language, setLanguage, t };
+};
+const useTheme = () => useContext(ThemeContext);
 
-            <div id="expenses-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Expenses</h1>
-                <button id="add-expense-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Expense</button>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Description</th>
-                                    <th class="p-3">Amount</th>
-                                    <th class="p-3">Date</th>
-                                    <th class="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="expenses-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+// --- PROVIDERS ---
+const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [userId, setUserId] = useState(null);
 
-            <div id="customers-section" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold text-gray-800">Customers</h1>
-                     <div>
-                        <button id="export-customers-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 mr-2">Export to CSV</button>
-                        <button id="add-customer-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">Add Customer</button>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Name</th>
-                                    <th class="p-3">Email</th>
-                                    <th class="p-3">Phone</th>
-                                    <th class="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customers-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="suppliers-section" class="hidden">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">Suppliers</h1>
-                <button id="add-supplier-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 mb-6">Add Supplier</button>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-3">Name</th>
-                                    <th class="p-3">Contact Person</th>
-                                    <th class="p-3">Email</th>
-                                    <th class="p-3">Phone</th>
-                                    <th class="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="suppliers-table"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="product-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 id="product-modal-title" class="text-2xl font-bold mb-6">Add Product</h2>
-            <form id="product-form">
-                <input type="hidden" id="product-id">
-                <div class="mb-4">
-                    <label for="category" class="block text-gray-700">Category</label>
-                    <select id="category" class="w-full p-2 border rounded-lg" required>
-                        <option value="Mobile Phone">Mobile Phone</option>
-                        <option value="Memory Card">Memory Card</option>
-                        <option value="Cable">Cable</option>
-                        <option value="Headphones">Headphones</option>
-                        <option value="Charger">Charger</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="brand" class="block text-gray-700">Brand</label>
-                    <input type="text" id="brand" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="model" class="block text-gray-700">Product Name / Model</label>
-                    <input type="text" id="model" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="supplier" class="block text-gray-700">Supplier</label>
-                    <select id="supplier" class="w-full p-2 border rounded-lg"></select>
-                </div>
-                 <div class="mb-4">
-                    <label for="description" class="block text-gray-700">Description</label>
-                    <textarea id="description" class="w-full p-2 border rounded-lg" rows="3"></textarea>
-                    <button type="button" id="generate-description-btn" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center">
-                        ✨ Generate Description
-                        <div id="description-loader" class="loader ml-2 hidden"></div>
-                    </button>
-                </div>
-                <div class="mb-4">
-                    <label for="stock" class="block text-gray-700">Stock</label>
-                    <input type="number" id="stock" class="w-full p-2 border rounded-lg" required>
-                </div>
-                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="cost" class="block text-gray-700">Cost</label>
-                        <input type="number" step="0.01" id="cost" class="w-full p-2 border rounded-lg" required>
-                    </div>
-                    <div>
-                        <label for="price" class="block text-gray-700">Price</label>
-                        <input type="number" step="0.01" id="price" class="w-full p-2 border rounded-lg" required>
-                    </div>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-product-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div id="sale-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-6">Add Sale</h2>
-            <form id="sale-form">
-                <div class="mb-4">
-                    <label for="sale-product" class="block text-gray-700">Product</label>
-                    <select id="sale-product" class="w-full p-2 border rounded-lg" required></select>
-                </div>
-                <div id="sales-suggestion-container" class="mb-4 hidden">
-                    <h3 class="font-semibold text-gray-700">✨ Smart Suggestions:</h3>
-                    <div id="sales-suggestions" class="mt-2 text-gray-600"></div>
-                     <div id="suggestion-loader" class="loader mt-2 hidden"></div>
-                </div>
-                <div class="mb-4">
-                    <label for="sale-customer" class="block text-gray-700">Customer</label>
-                    <select id="sale-customer" class="w-full p-2 border rounded-lg" required></select>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-sale-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Record Sale</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="repair-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 id="repair-modal-title" class="text-2xl font-bold mb-6">Add Repair Job</h2>
-            <form id="repair-form">
-                <input type="hidden" id="repair-id">
-                <div class="mb-4">
-                    <label for="repair-customer" class="block text-gray-700">Customer</label>
-                    <select id="repair-customer" class="w-full p-2 border rounded-lg" required></select>
-                </div>
-                <div class="mb-4">
-                    <label for="repair-device" class="block text-gray-700">Device</label>
-                    <input type="text" id="repair-device" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="repair-issue" class="block text-gray-700">Issue</label>
-                    <textarea id="repair-issue" class="w-full p-2 border rounded-lg" rows="3" required></textarea>
-                </div>
-                <div class="mb-4">
-                    <label for="repair-status" class="block text-gray-700">Status</label>
-                    <select id="repair-status" class="w-full p-2 border rounded-lg" required>
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label for="repair-cost" class="block text-gray-700">Cost</label>
-                    <input type="number" step="0.01" id="repair-cost" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-repair-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="expense-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 id="expense-modal-title" class="text-2xl font-bold mb-6">Add Expense</h2>
-            <form id="expense-form">
-                <input type="hidden" id="expense-id">
-                <div class="mb-4">
-                    <label for="expense-description" class="block text-gray-700">Description</label>
-                    <input type="text" id="expense-description" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="expense-amount" class="block text-gray-700">Amount</label>
-                    <input type="number" step="0.01" id="expense-amount" class="w-full p-2 border rounded-lg" required>
-                </div>
-                 <div class="mb-4">
-                    <label for="expense-date" class="block text-gray-700">Date</label>
-                    <input type="date" id="expense-date" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-expense-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 id="customer-modal-title" class="text-2xl font-bold mb-6">Add Customer</h2>
-            <form id="customer-form">
-                <input type="hidden" id="customer-id">
-                <div class="mb-4">
-                    <label for="customer-name" class="block text-gray-700">Name</label>
-                    <input type="text" id="customer-name" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="customer-email" class="block text-gray-700">Email</label>
-                    <input type="email" id="customer-email" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="customer-phone" class="block text-gray-700">Phone</label>
-                    <input type="tel" id="customer-phone" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-customer-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="supplier-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-            <h2 id="supplier-modal-title" class="text-2xl font-bold mb-6">Add Supplier</h2>
-            <form id="supplier-form">
-                <input type="hidden" id="supplier-id">
-                <div class="mb-4">
-                    <label for="supplier-name" class="block text-gray-700">Name</label>
-                    <input type="text" id="supplier-name" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="supplier-contact" class="block text-gray-700">Contact Person</label>
-                    <input type="text" id="supplier-contact" class="w-full p-2 border rounded-lg">
-                </div>
-                <div class="mb-4">
-                    <label for="supplier-email" class="block text-gray-700">Email</label>
-                    <input type="email" id="supplier-email" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label for="supplier-phone" class="block text-gray-700">Phone</label>
-                    <input type="tel" id="supplier-phone" class="w-full p-2 border rounded-lg" required>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" id="cancel-supplier-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg mr-2">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div id="customer-history-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="customer-history-modal-title" class="text-2xl font-bold">Purchase History</h2>
-                <button id="close-customer-history-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-            </div>
-            <div id="customer-history-content"></div>
-        </div>
-    </div>
-
-    <div id="analysis-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="analysis-modal-title" class="text-2xl font-bold">AI Analysis</h2>
-                <button id="close-analysis-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-            </div>
-            <div id="analysis-content" class="text-gray-700 whitespace-pre-wrap">
-                <div class="flex justify-center items-center h-48">
-                    <div class="loader"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDBOOTnTWqTYyWTBo8uvuJVd85399hJwOA",
-            authDomain: "shop-1e233.firebaseapp.com",
-            projectId: "shop-1e233",
-            storageBucket: "shop-1e233.firebasestorage.app",
-            messagingSenderId: "674505750349",
-            appId: "1:674505750349:web:ea131ee81b27d5b960a904",
-            measurementId: "G-S65ER0NBR4"
+    useEffect(() => {
+        const performAuth = async () => {
+            try {
+                // Automatically sign in the user.
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Automatic Authentication Error:", error);
+                setLoading(false);
+            }
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth();
-        const analytics = getAnalytics(app);
-
-        signInAnonymously(auth).catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
+        const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+            if (authUser) {
+                // User is signed in (anonymously or with token).
+                // Create a mock user object for the app to use.
+                const currentUser = { uid: authUser.uid, email: 'user@shop.com', role: 'Admin' };
+                setUser(currentUser);
+                setUserId(authUser.uid);
+            } else {
+                // This case should not be hit with the current logic.
+                setUser(null);
+                setUserId(null);
+            }
+            setLoading(false);
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DATA MANAGEMENT ---
-            let inventory = [];
-            let sales = [];
-            let customers = [];
-            let expenses = [];
-            let suppliers = [];
-            let repairs = [];
-            
-            // --- CHART INSTANCES ---
-            let salesChartInstance;
-            let categoryChartInstance;
+        performAuth();
 
-            // --- GEMINI API CALL ---
-            async function callGemini(prompt, maxRetries = 3) {
-                const apiKey = ""; // Canvas will provide this
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                
-                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-                const payload = { contents: chatHistory };
+        return () => unsubscribe();
+    }, []);
 
-                for (let i = 0; i < maxRetries; i++) {
-                    try {
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+    const value = { user, loading, userId };
+    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+};
 
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        
-                        const result = await response.json();
-                        
-                        if (result.candidates && result.candidates[0] && result.candidates[0].content.parts[0]) {
-                            return result.candidates[0].content.parts[0].text;
-                        } else {
-                            throw new Error("Invalid response structure from Gemini API");
-                        }
+const LanguageProvider = ({ children }) => {
+    const [language, setLanguage] = useState('en');
+    const t = (key) => translations[language][key] || key;
+    return (
+        <LanguageContext.Provider value={{ language, setLanguage, t }}>
+            {children}
+        </LanguageContext.Provider>
+    );
+};
 
-                    } catch (error) {
-                        console.error(`Attempt ${i + 1} failed:`, error);
-                        if (i === maxRetries - 1) {
-                           return "Sorry, I couldn't generate a response right now.";
-                        }
-                        await new Promise(res => setTimeout(res, 1000 * Math.pow(2, i)));
-                    }
-                }
+const ThemeProvider = ({ children }) => {
+    const [theme, setTheme] = useState('light');
+    const toggleTheme = () => {
+        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    };
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove(theme === 'light' ? 'dark' : 'light');
+        root.classList.add(theme);
+    }, [theme]);
+
+    return (
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+            {children}
+        </ThemeContext.Provider>
+    );
+};
+
+// --- COMPONENTS ---
+
+const Sidebar = ({ activePage, setActivePage, isSidebarOpen }) => {
+    const { t } = useLanguage();
+    const navItems = [
+        { id: 'dashboard', label: t('dashboard'), icon: Home },
+        { id: 'products', label: t('products'), icon: Package },
+        { id: 'sales', label: t('sales'), icon: ShoppingCart },
+        { id: 'expenses', label: t('expenses'), icon: DollarSign },
+        { id: 'customers', label: t('customers'), icon: Users },
+        { id: 'stock', label: t('stock'), icon: List },
+        { id: 'reports', label: t('reports'), icon: BarChart2 },
+        { id: 'tasks', label: t('tasks'), icon: Calendar },
+    ];
+
+    return (
+        <aside className={`bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex flex-col transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
+            <div className={`flex items-center justify-center h-20 border-b border-gray-200 dark:border-gray-700 ${isSidebarOpen ? 'px-4' : ''}`}>
+                <ShoppingCart className="w-8 h-8 text-indigo-500" />
+                {isSidebarOpen && <h1 className="ml-3 text-xl font-bold">{t('rahimiMobileManager')}</h1>}
+            </div>
+            <nav className="flex-1 px-2 py-4 space-y-2">
+                {navItems.map(item => (
+                    <a
+                        key={item.id}
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); setActivePage(item.id); }}
+                        className={`flex items-center p-3 text-base font-normal rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group ${activePage === item.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+                    >
+                        <item.icon className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
+                        {isSidebarOpen && <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>}
+                    </a>
+                ))}
+            </nav>
+        </aside>
+    );
+};
+
+const Header = ({ toggleSidebar, isSidebarOpen, toggleMobileSidebar }) => {
+    const { language, setLanguage } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
+
+    return (
+        <header className="flex items-center justify-between h-20 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center">
+                 <button onClick={toggleMobileSidebar} className="p-2 -ml-2 text-gray-600 rounded-md md:hidden dark:text-gray-300">
+                    <Menu size={24} />
+                </button>
+                <button onClick={toggleSidebar} className="hidden p-2 -ml-2 text-gray-600 rounded-md md:block dark:text-gray-300">
+                    <Menu size={24} />
+                </button>
+            </div>
+            <div className="flex items-center space-x-4">
+                <button onClick={toggleTheme} className="p-2 text-gray-600 rounded-full hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+                <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="px-3 py-2 text-sm bg-gray-100 border-gray-300 rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none"
+                >
+                    <option value="en">English</option>
+                    <option value="ps">پښتو</option>
+                </select>
+            </div>
+        </header>
+    );
+};
+
+const Dashboard = () => {
+    const { t } = useLanguage();
+    const { userId } = useAuth();
+    const [sales, setSales] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [expenses, setExpenses] = useState([]);
+
+    useEffect(() => {
+        if (!userId) return;
+        const salesPath = `/artifacts/${appId}/users/${userId}/sales`;
+        const productsPath = `/artifacts/${appId}/users/${userId}/products`;
+        const expensesPath = `/artifacts/${appId}/users/${userId}/expenses`;
+
+        const salesUnsub = onSnapshot(collection(db, salesPath), (snapshot) => {
+            setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        const productsUnsub = onSnapshot(collection(db, productsPath), (snapshot) => {
+            setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        const expensesUnsub = onSnapshot(collection(db, expensesPath), (snapshot) => {
+            setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        return () => {
+            salesUnsub();
+            productsUnsub();
+            expensesUnsub();
+        };
+    }, [userId]);
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    const salesToday = useMemo(() => sales.filter(s => s.date?.toDate().toISOString().split('T')[0] === today), [sales, today]);
+    const expensesToday = useMemo(() => expenses.filter(e => e.date?.toDate().toISOString().split('T')[0] === today), [expenses, today]);
+    
+    const totalSalesToday = useMemo(() => salesToday.reduce((sum, s) => sum + s.grandTotal, 0), [salesToday]);
+    const totalExpensesToday = useMemo(() => expensesToday.reduce((sum, e) => sum + e.amount, 0), [expensesToday]);
+    
+    const totalCostToday = useMemo(() => {
+        return salesToday.reduce((cost, sale) => {
+            const saleCost = sale.items.reduce((itemCost, item) => {
+                const product = products.find(p => p.id === item.productId);
+                return itemCost + (product ? product.purchasePrice * item.quantity : 0);
+            }, 0);
+            return cost + saleCost;
+        }, 0);
+    }, [salesToday, products]);
+
+    const profitToday = totalSalesToday - totalCostToday;
+    
+    const topSellingProducts = useMemo(() => {
+        const productSales = {};
+        sales.forEach(sale => {
+            sale.items.forEach(item => {
+                productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
+            });
+        });
+        
+        return Object.entries(productSales)
+            .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
+            .slice(0, 5)
+            .map(([productId, quantity]) => {
+                const product = products.find(p => p.id === productId);
+                return { name: product ? product.name : 'Unknown', quantity };
+            });
+    }, [sales, products]);
+
+    const lowStockProducts = useMemo(() => products.filter(p => p.quantity <= (p.lowStockLevel || 5)), [products]);
+
+    const salesData = useMemo(() => {
+         const last7Days = Array.from({length: 7}, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            return d.toISOString().split('T')[0];
+        }).reverse();
+
+        return last7Days.map(date => {
+            const dailySales = sales
+                .filter(s => s.date?.toDate().toISOString().split('T')[0] === date)
+                .reduce((sum, s) => sum + s.grandTotal, 0);
+            return { name: new Date(date).toLocaleDateString('en-US', { weekday: 'short'}), sales: dailySales };
+        });
+    }, [sales]);
+
+
+    return (
+        <div className="p-6 space-y-6">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('dashboard')}</h2>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('salesToday')}</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">${totalSalesToday.toFixed(2)}</p>
+                </div>
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('profitToday')}</h3>
+                    <p className={`text-3xl font-bold ${profitToday >= 0 ? 'text-green-500' : 'text-red-500'}`}>${profitToday.toFixed(2)}</p>
+                </div>
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('expensesToday')}</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">${totalExpensesToday.toFixed(2)}</p>
+                </div>
+            </div>
+
+            <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">Sales Overview (Last 7 Days)</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={salesData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none' }}/>
+                        <Legend />
+                        <Bar dataKey="sales" fill="#4f46e5" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">{t('topSellingProducts')}</h3>
+                    <ul className="space-y-2">
+                        {topSellingProducts.map((p, i) => (
+                            <li key={i} className="flex justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <span className="text-gray-700 dark:text-gray-300">{p.name}</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{p.quantity} sold</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">{t('lowStockAlerts')}</h3>
+                     <ul className="space-y-2">
+                        {lowStockProducts.length > 0 ? lowStockProducts.map(p => (
+                            <li key={p.id} className="flex justify-between p-2 text-yellow-600 bg-yellow-100 rounded dark:bg-yellow-900/20 dark:text-yellow-400">
+                                <span >{p.name}</span>
+                                <span className="font-semibold">Only {p.quantity} left</span>
+                            </li>
+                        )) : <p className="text-gray-500 dark:text-gray-400">No low stock items.</p>}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Products = () => {
+    const { t } = useLanguage();
+    const { userId } = useAuth();
+    const [products, setProducts] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [formData, setFormData] = useState({ name: '', purchasePrice: '', sellingPrice: '', quantity: '', category: '' });
+
+    const productsPath = useMemo(() => `/artifacts/${appId}/users/${userId}/products`, [userId]);
+
+    useEffect(() => {
+        if (!userId) return;
+        const q = query(collection(db, productsPath));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setProducts(productsData);
+        });
+        return () => unsubscribe();
+    }, [userId, productsPath]);
+
+    const handleOpenModal = (product = null) => {
+        setEditingProduct(product);
+        setFormData(product ? { ...product } : { name: '', purchasePrice: '', sellingPrice: '', quantity: '', category: 'Mobiles' });
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setEditingProduct(null);
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const productData = {
+            ...formData,
+            purchasePrice: parseFloat(formData.purchasePrice),
+            sellingPrice: parseFloat(formData.sellingPrice),
+            quantity: parseInt(formData.quantity, 10),
+        };
+
+        try {
+            if (editingProduct) {
+                const docRef = doc(db, productsPath, editingProduct.id);
+                await updateDoc(docRef, productData);
+            } else {
+                await addDoc(collection(db, productsPath), { ...productData, createdAt: new Date() });
             }
+            handleCloseModal();
+        } catch (error) {
+            console.error("Error saving product:", error);
+        }
+    };
 
+    const handleDelete = async (id) => {
+        // A simple confirmation dialog. For a better UX, use a custom modal component.
+        if (window.confirm('Are you sure you want to delete this product?')) {
+            try {
+                await deleteDoc(doc(db, productsPath, id));
+            } catch (error) {
+                console.error("Error deleting product:", error);
+            }
+        }
+    };
+    
+    const categories = ["Mobiles", "Chargers", "Memory Cards", "Cables", "Power Banks", "Software Services"];
 
-            // --- NAVIGATION ---
-            const links = {
-                'dashboard-link': 'dashboard-section',
-                'reports-link': 'reports-section',
-                'inventory-link': 'inventory-section',
-                'sales-link': 'sales-section',
-                'repairs-link': 'repairs-section',
-                'expenses-link': 'expenses-section',
-                'customers-link': 'customers-section',
-                'suppliers-link': 'suppliers-section'
-            };
+    return (
+        <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('manageProducts')}</h2>
+                <button onClick={() => handleOpenModal()} className="px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
+                    {t('addProduct')}
+                </button>
+            </div>
 
-            Object.keys(links).forEach(linkId => {
-                document.getElementById(linkId).addEventListener('click', (e) => {
-                    e.preventDefault();
-                    Object.values(links).forEach(sectionId => document.getElementById(sectionId).classList.add('hidden'));
-                    Object.keys(links).forEach(id => document.getElementById(id).classList.remove('active'));
-                    document.getElementById(links[linkId]).classList.remove('hidden');
-                    e.target.classList.add('active');
-                    if(links[linkId] === 'reports-section') {
-                        renderReports();
-                    }
-                });
-            });
+            <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">{t('productName')}</th>
+                            <th scope="col" className="px-6 py-3">{t('category')}</th>
+                            <th scope="col" className="px-6 py-3">{t('purchasePrice')}</th>
+                            <th scope="col" className="px-6 py-3">{t('sellingPrice')}</th>
+                            <th scope="col" className="px-6 py-3">{t('quantity')}</th>
+                            <th scope="col" className="px-6 py-3">{t('actions')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {products.map(product => (
+                            <tr key={product.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{product.name}</td>
+                                <td className="px-6 py-4">{product.category}</td>
+                                <td className="px-6 py-4">${product.purchasePrice?.toFixed(2)}</td>
+                                <td className="px-6 py-4">${product.sellingPrice?.toFixed(2)}</td>
+                                <td className="px-6 py-4">{product.quantity}</td>
+                                <td className="px-6 py-4 space-x-2">
+                                    <button onClick={() => handleOpenModal(product)} className="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">{t('edit')}</button>
+                                    <button onClick={() => handleDelete(product.id)} className="font-medium text-red-600 dark:text-red-500 hover:underline">{t('delete')}</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
-            // --- RENDERING & UI UPDATES ---
-             const updateLowStockNotification = () => {
-                const notificationBadge = document.getElementById('low-stock-notification');
-                const lowStockItems = inventory.filter(item => item.stock <= 5);
-                if (lowStockItems.length > 0) {
-                    notificationBadge.textContent = lowStockItems.length;
-                    notificationBadge.classList.remove('hidden');
-                } else {
-                    notificationBadge.classList.add('hidden');
-                }
-            };
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl dark:bg-gray-800">
+                        <h3 className="mb-4 text-xl font-semibold">{editingProduct ? 'Edit Product' : t('addProduct')}</h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('productName')}</label>
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full mt-1 input-style" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('category')}</label>
+                                <select name="category" value={formData.category} onChange={handleChange} required className="w-full mt-1 input-style">
+                                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('purchasePrice')}</label>
+                                    <input type="number" name="purchasePrice" value={formData.purchasePrice} onChange={handleChange} required className="w-full mt-1 input-style" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('sellingPrice')}</label>
+                                    <input type="number" name="sellingPrice" value={formData.sellingPrice} onChange={handleChange} required className="w-full mt-1 input-style" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('quantity')}</label>
+                                <input type="number" name="quantity" value={formData.quantity} onChange={handleChange} required className="w-full mt-1 input-style" />
+                            </div>
+                            <div className="flex justify-end space-x-3">
+                                <button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded-lg dark:bg-gray-600">{t('cancel')}</button>
+                                <button type="submit" className="px-4 py-2 text-white bg-indigo-600 rounded-lg">{t('save')}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
-            const renderInventory = () => {
-                const table = document.getElementById('inventory-table');
-                table.innerHTML = '';
-                inventory.forEach(item => {
-                    const supplier = suppliers.find(s => s.id === item.supplierId);
-                    const row = document.createElement('tr');
-                    row.className = item.stock <= 5 ? 'bg-red-100' : '';
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${item.category}</td>
-                        <td class="p-3 border-b">${item.brand}</td>
-                        <td class="p-3 border-b">${item.model}</td>
-                        <td class="p-3 border-b">${item.stock}</td>
-                        <td class="p-3 border-b">$${item.cost}</td>
-                        <td class="p-3 border-b">$${item.price}</td>
-                        <td class="p-3 border-b">${supplier ? supplier.name : 'N/A'}</td>
-                        <td class="p-3 border-b">
-                            <button class="edit-product-btn text-blue-600 hover:underline mr-2" data-id="${item.id}">Edit</button>
-                            <button class="delete-product-btn text-red-600 hover:underline" data-id="${item.id}">Delete</button>
-                        </td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
-            
-            const renderSales = () => {
-                const table = document.getElementById('sales-table');
-                table.innerHTML = '';
-                sales.forEach(sale => {
-                    const product = inventory.find(p => p.id === sale.productId);
-                    const customer = customers.find(c => c.id === sale.customerId);
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
-                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
-                        <td class="p-3 border-b">$${sale.price}</td>
-                        <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
+const Sales = () => {
+    const { t } = useLanguage();
+    const { userId } = useAuth();
+    const [products, setProducts] = useState([]);
+    const [cart, setCart] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [discount, setDiscount] = useState(0);
+    const [tax, setTax] = useState(0); // Example: 10% tax
 
-            const renderRepairs = () => {
-                const table = document.getElementById('repairs-table');
-                table.innerHTML = '';
-                repairs.forEach(repair => {
-                    const customer = customers.find(c => c.id === repair.customerId);
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
-                        <td class="p-3 border-b">${repair.device}</td>
-                        <td class="p-3 border-b max-w-xs truncate" title="${repair.issue}">${repair.issue}</td>
-                        <td class="p-3 border-b">${repair.status}</td>
-                        <td class="p-3 border-b">$${repair.cost}</td>
-                        <td class="p-3 border-b">
-                            <button class="edit-repair-btn text-blue-600 hover:underline mr-2" data-id="${repair.id}">Edit</button>
-                            <button class="delete-repair-btn text-red-600 hover:underline" data-id="${repair.id}">Delete</button>
-                        </td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
+    const productsPath = useMemo(() => `/artifacts/${appId}/users/${userId}/products`, [userId]);
+    const salesPath = useMemo(() => `/artifacts/${appId}/users/${userId}/sales`, [userId]);
 
-            const renderExpenses = () => {
-                const table = document.getElementById('expenses-table');
-                table.innerHTML = '';
-                expenses.forEach(expense => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${expense.description}</td>
-                        <td class="p-3 border-b">$${expense.amount}</td>
-                        <td class="p-3 border-b">${new Date(expense.date).toLocaleDateString()}</td>
-                        <td class="p-3 border-b">
-                            <button class="edit-expense-btn text-blue-600 hover:underline mr-2" data-id="${expense.id}">Edit</button>
-                            <button class="delete-expense-btn text-red-600 hover:underline" data-id="${expense.id}">Delete</button>
-                        </td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
-            
-            const renderCustomers = () => {
-                const table = document.getElementById('customers-table');
-                table.innerHTML = '';
-                customers.forEach(customer => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${customer.name}</td>
-                        <td class="p-3 border-b">${customer.email}</td>
-                        <td class="p-3 border-b">${customer.phone}</td>
-                        <td class="p-3 border-b">
-                            <button class="view-history-btn text-green-600 hover:underline mr-2" data-id="${customer.id}">History</button>
-                            <button class="edit-customer-btn text-blue-600 hover:underline mr-2" data-id="${customer.id}">Edit</button>
-                            <button class="delete-customer-btn text-red-600 hover:underline" data-id="${customer.id}">Delete</button>
-                        </td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
+    useEffect(() => {
+        if (!userId) return;
+        const unsubscribe = onSnapshot(collection(db, productsPath), (snapshot) => {
+            setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        return () => unsubscribe();
+    }, [userId, productsPath]);
 
-            const renderSuppliers = () => {
-                const table = document.getElementById('suppliers-table');
-                table.innerHTML = '';
-                suppliers.forEach(supplier => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${supplier.name}</td>
-                        <td class="p-3 border-b">${supplier.contact || 'N/A'}</td>
-                        <td class="p-3 border-b">${supplier.email}</td>
-                        <td class="p-3 border-b">${supplier.phone}</td>
-                        <td class="p-3 border-b">
-                            <button class="edit-supplier-btn text-blue-600 hover:underline mr-2" data-id="${supplier.id}">Edit</button>
-                            <button class="delete-supplier-btn text-red-600 hover:underline" data-id="${supplier.id}">Delete</button>
-                        </td>
-                    `;
-                    table.appendChild(row);
-                });
-            };
+    const addToCart = (product) => {
+        setCart(prevCart => {
+            const existingItem = prevCart.find(item => item.productId === product.id);
+            if (existingItem) {
+                return prevCart.map(item =>
+                    item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                );
+            }
+            return [...prevCart, { productId: product.id, name: product.name, price: product.sellingPrice, quantity: 1 }];
+        });
+    };
 
-            const renderDashboard = () => {
-                document.getElementById('total-products').textContent = inventory.reduce((sum, item) => sum + item.stock, 0);
-                const totalSales = sales.reduce((sum, sale) => sum + sale.price, 0);
-                document.getElementById('total-sales').textContent = `$${totalSales.toLocaleString()}`;
-                const now = new Date();
-                const monthlySales = sales
-                    .filter(sale => {
-                        const saleDate = new Date(sale.date.seconds * 1000);
-                        return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
-                    })
-                    .reduce((sum, sale) => sum + sale.price, 0);
-                document.getElementById('monthly-sales').textContent = `$${monthlySales.toLocaleString()}`;
-                const totalInvestment = inventory.reduce((sum, item) => sum + (item.cost * item.stock), 0);
-                document.getElementById('total-investment').textContent = `$${totalInvestment.toLocaleString()}`;
-                document.getElementById('total-customers').textContent = customers.length;
-                const recentSalesTable = document.getElementById('recent-sales-table');
-                recentSalesTable.innerHTML = '';
-                sales.slice(-5).reverse().forEach(sale => {
-                    const product = inventory.find(p => p.id === sale.productId);
-                    const customer = customers.find(c => c.id === sale.customerId);
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
-                        <td class="p-3 border-b">${customer ? customer.name : 'N/A'}</td>
-                        <td class="p-3 border-b">$${sale.price}</td>
-                        <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
-                    `;
-                    recentSalesTable.appendChild(row);
-                });
-            };
+    const updateQuantity = (productId, newQuantity) => {
+        setCart(prevCart =>
+            prevCart.map(item =>
+                item.productId === productId ? { ...item, quantity: Math.max(1, newQuantity) } : item
+            ).filter(item => item.quantity > 0)
+        );
+    };
 
-            const renderReports = () => {
-                const salesByDate = sales.reduce((acc, sale) => {
-                    const date = new Date(sale.date.seconds * 1000).toLocaleDateString();
-                    acc[date] = (acc[date] || 0) + sale.price;
-                    return acc;
-                }, {});
-                
-                const salesCtx = document.getElementById('sales-chart').getContext('2d');
-                if(salesChartInstance) salesChartInstance.destroy();
-                salesChartInstance = new Chart(salesCtx, {
-                    type: 'line',
-                    data: {
-                        labels: Object.keys(salesByDate),
-                        datasets: [{
-                            label: 'Sales',
-                            data: Object.values(salesByDate),
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1
-                        }]
-                    }
-                });
+    const removeFromCart = (productId) => {
+        setCart(prevCart => prevCart.filter(item => item.productId !== productId));
+    };
 
-                const salesByCategory = sales.reduce((acc, sale) => {
-                    const product = inventory.find(p => p.id === sale.productId);
-                    if (product) {
-                        acc[product.category] = (acc[product.category] || 0) + sale.price;
-                    }
-                    return acc;
-                }, {});
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.quantity > 0
+    );
 
-                const categoryCtx = document.getElementById('category-chart').getContext('2d');
-                if(categoryChartInstance) categoryChartInstance.destroy();
-                categoryChartInstance = new Chart(categoryCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: Object.keys(salesByCategory),
-                        datasets: [{
-                            label: 'Sales',
-                            data: Object.values(salesByCategory),
-                            backgroundColor: [
-                                'rgb(255, 99, 132)',
-                                'rgb(54, 162, 235)',
-                                'rgb(255, 205, 86)',
-                                'rgb(75, 192, 192)',
-                                'rgb(153, 102, 255)'
-                            ]
-                        }]
-                    }
-                });
-            };
+    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
+    const grandTotal = useMemo(() => subtotal - discount + (subtotal * tax / 100), [subtotal, discount, tax]);
 
-            // --- MODAL HANDLING ---
-            const productModal = document.getElementById('product-modal');
-            const saleModal = document.getElementById('sale-modal');
-            const customerModal = document.getElementById('customer-modal');
-            const expenseModal = document.getElementById('expense-modal');
-            const supplierModal = document.getElementById('supplier-modal');
-            const repairModal = document.getElementById('repair-modal');
-            const customerHistoryModal = document.getElementById('customer-history-modal');
-            const analysisModal = document.getElementById('analysis-modal');
-            
-            document.getElementById('add-product-btn').addEventListener('click', () => {
-                document.getElementById('product-modal-title').textContent = 'Add Product';
-                document.getElementById('product-form').reset();
-                document.getElementById('product-id').value = '';
-                const supplierSelect = document.getElementById('supplier');
-                supplierSelect.innerHTML = '<option value="">Select Supplier</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-                productModal.classList.remove('hidden');
-            });
-            
-            document.getElementById('add-sale-btn').addEventListener('click', () => {
-                const productSelect = document.getElementById('sale-product');
-                const customerSelect = document.getElementById('sale-customer');
-                productSelect.innerHTML = '<option value="">Select a product</option>' + inventory.map(p => `<option value="${p.id}">${p.brand} ${p.model}</option>`).join('');
-                customerSelect.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                document.getElementById('sales-suggestion-container').classList.add('hidden');
-                saleModal.classList.remove('hidden');
-            });
+    const completeSale = async () => {
+        if (cart.length === 0) return;
+        const saleData = {
+            items: cart,
+            subtotal,
+            discount,
+            tax,
+            grandTotal,
+            date: new Date(),
+        };
 
-            document.getElementById('add-repair-btn').addEventListener('click', () => {
-                document.getElementById('repair-modal-title').textContent = 'Add Repair Job';
-                document.getElementById('repair-form').reset();
-                document.getElementById('repair-id').value = '';
-                const customerSelect = document.getElementById('repair-customer');
-                customerSelect.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                repairModal.classList.remove('hidden');
-            });
+        try {
+            await addDoc(collection(db, salesPath), saleData);
 
-            document.getElementById('add-expense-btn').addEventListener('click', () => {
-                document.getElementById('expense-modal-title').textContent = 'Add Expense';
-                document.getElementById('expense-form').reset();
-                document.getElementById('expense-id').value = '';
-                document.getElementById('expense-date').valueAsDate = new Date();
-                expenseModal.classList.remove('hidden');
-            });
-            
-            document.getElementById('add-customer-btn').addEventListener('click', () => {
-                 document.getElementById('customer-modal-title').textContent = 'Add Customer';
-                document.getElementById('customer-form').reset();
-                document.getElementById('customer-id').value = '';
-                customerModal.classList.remove('hidden');
-            });
-
-            document.getElementById('add-supplier-btn').addEventListener('click', () => {
-                document.getElementById('supplier-modal-title').textContent = 'Add Supplier';
-                document.getElementById('supplier-form').reset();
-                document.getElementById('supplier-id').value = '';
-                supplierModal.classList.remove('hidden');
-            });
-
-            document.getElementById('cancel-product-btn').addEventListener('click', () => productModal.classList.add('hidden'));
-            document.getElementById('cancel-sale-btn').addEventListener('click', () => saleModal.classList.add('hidden'));
-            document.getElementById('cancel-repair-btn').addEventListener('click', () => repairModal.classList.add('hidden'));
-            document.getElementById('cancel-expense-btn').addEventListener('click', () => expenseModal.classList.add('hidden'));
-            document.getElementById('cancel-customer-btn').addEventListener('click', () => customerModal.classList.add('hidden'));
-            document.getElementById('cancel-supplier-btn').addEventListener('click', () => supplierModal.classList.add('hidden'));
-            document.getElementById('close-customer-history-btn').addEventListener('click', () => customerHistoryModal.classList.add('hidden'));
-            document.getElementById('close-analysis-btn').addEventListener('click', () => analysisModal.classList.add('hidden'));
-
-            // --- FORM SUBMISSIONS ---
-            document.getElementById('product-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('product-id').value;
-                const newProduct = {
-                    category: document.getElementById('category').value,
-                    brand: document.getElementById('brand').value,
-                    model: document.getElementById('model').value,
-                    supplierId: document.getElementById('supplier').value || null,
-                    description: document.getElementById('description').value,
-                    stock: parseInt(document.getElementById('stock').value),
-                    cost: parseFloat(document.getElementById('cost').value),
-                    price: parseFloat(document.getElementById('price').value)
-                };
-
-                if (id) {
-                    await setDoc(doc(db, "inventory", id), newProduct);
-                } else {
-                    await addDoc(collection(db, "inventory"), newProduct);
-                }
-                
-                productModal.classList.add('hidden');
-            });
-            
-            document.getElementById('sale-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const productId = document.getElementById('sale-product').value;
-                const productRef = doc(db, "inventory", productId);
-                const product = inventory.find(p => p.id === productId);
-                
-                if (product && product.stock > 0) {
-                    const newSale = {
-                        productId: productId,
-                        customerId: document.getElementById('sale-customer').value,
-                        price: product.price,
-                        date: new Date()
-                    };
-                    await addDoc(collection(db, "sales"), newSale);
+            // Update stock
+            for (const item of cart) {
+                const productRef = doc(db, productsPath, item.productId);
+                const productSnap = await getDoc(productRef);
+                if (productSnap.exists()) {
+                    const currentQuantity = productSnap.data().quantity;
                     await updateDoc(productRef, {
-                        stock: product.stock - 1
+                        quantity: currentQuantity - item.quantity,
                     });
-                    saleModal.classList.add('hidden');
-                } else {
-                    alert('Product is out of stock!');
                 }
-            });
-
-            document.getElementById('repair-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('repair-id').value;
-                const newRepair = {
-                    customerId: document.getElementById('repair-customer').value,
-                    device: document.getElementById('repair-device').value,
-                    issue: document.getElementById('repair-issue').value,
-                    status: document.getElementById('repair-status').value,
-                    cost: parseFloat(document.getElementById('repair-cost').value)
-                };
-
-                if (id) {
-                    await setDoc(doc(db, "repairs", id), newRepair);
-                } else {
-                    await addDoc(collection(db, "repairs"), newRepair);
-                }
-                
-                repairModal.classList.add('hidden');
-            });
-
-             document.getElementById('expense-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('expense-id').value;
-                const newExpense = {
-                    description: document.getElementById('expense-description').value,
-                    amount: parseFloat(document.getElementById('expense-amount').value),
-                    date: new Date(document.getElementById('expense-date').value)
-                };
-
-                if (id) {
-                    await setDoc(doc(db, "expenses", id), newExpense);
-                } else {
-                    await addDoc(collection(db, "expenses"), newExpense);
-                }
-                
-                expenseModal.classList.add('hidden');
-            });
-            
-            document.getElementById('customer-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('customer-id').value;
-                const newCustomer = {
-                    name: document.getElementById('customer-name').value,
-                    email: document.getElementById('customer-email').value,
-                    phone: document.getElementById('customer-phone').value
-                };
-
-                if (id) {
-                    await setDoc(doc(db, "customers", id), newCustomer);
-                } else {
-                    await addDoc(collection(db, "customers"), newCustomer);
-                }
-                
-                customerModal.classList.add('hidden');
-            });
-
-            document.getElementById('supplier-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('supplier-id').value;
-                const newSupplier = {
-                    name: document.getElementById('supplier-name').value,
-                    contact: document.getElementById('supplier-contact').value,
-                    email: document.getElementById('supplier-email').value,
-                    phone: document.getElementById('supplier-phone').value
-                };
-
-                if (id) {
-                    await setDoc(doc(db, "suppliers", id), newSupplier);
-                } else {
-                    await addDoc(collection(db, "suppliers"), newSupplier);
-                }
-                
-                supplierModal.classList.add('hidden');
-            });
-            
-            // --- EDIT & DELETE ---
-            document.getElementById('inventory-table').addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.classList.contains('edit-product-btn')) {
-                    const product = inventory.find(p => p.id == id);
-                    document.getElementById('product-modal-title').textContent = 'Edit Product';
-                    document.getElementById('product-id').value = product.id;
-                    document.getElementById('category').value = product.category;
-                    document.getElementById('brand').value = product.brand;
-                    document.getElementById('model').value = product.model;
-                    const supplierSelect = document.getElementById('supplier');
-                    supplierSelect.innerHTML = '<option value="">Select Supplier</option>' + suppliers.map(s => `<option value="${s.id}" ${product.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
-                    document.getElementById('description').value = product.description || '';
-                    document.getElementById('stock').value = product.stock;
-                    document.getElementById('cost').value = product.cost;
-                    document.getElementById('price').value = product.price;
-                    productModal.classList.remove('hidden');
-                }
-                if (e.target.classList.contains('delete-product-btn')) {
-                    if (confirm('Are you sure you want to delete this product?')) {
-                        deleteDoc(doc(db, "inventory", id));
-                    }
-                }
-            });
-
-            document.getElementById('repairs-table').addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.classList.contains('edit-repair-btn')) {
-                    const repair = repairs.find(r => r.id == id);
-                    document.getElementById('repair-modal-title').textContent = 'Edit Repair Job';
-                    document.getElementById('repair-id').value = repair.id;
-                    const customerSelect = document.getElementById('repair-customer');
-                    customerSelect.innerHTML = customers.map(c => `<option value="${c.id}" ${repair.customerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
-                    document.getElementById('repair-device').value = repair.device;
-                    document.getElementById('repair-issue').value = repair.issue;
-                    document.getElementById('repair-status').value = repair.status;
-                    document.getElementById('repair-cost').value = repair.cost;
-                    repairModal.classList.remove('hidden');
-                }
-                if (e.target.classList.contains('delete-repair-btn')) {
-                    if (confirm('Are you sure you want to delete this repair job?')) {
-                        deleteDoc(doc(db, "repairs", id));
-                    }
-                }
-            });
-
-            document.getElementById('expenses-table').addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.classList.contains('edit-expense-btn')) {
-                    const expense = expenses.find(ex => ex.id == id);
-                    document.getElementById('expense-modal-title').textContent = 'Edit Expense';
-                    document.getElementById('expense-id').value = expense.id;
-                    document.getElementById('expense-description').value = expense.description;
-                    document.getElementById('expense-amount').value = expense.amount;
-                    document.getElementById('expense-date').value = expense.date;
-                    expenseModal.classList.remove('hidden');
-                }
-                if (e.target.classList.contains('delete-expense-btn')) {
-                    if (confirm('Are you sure you want to delete this expense?')) {
-                       deleteDoc(doc(db, "expenses", id));
-                    }
-                }
-            });
-            
-            document.getElementById('customers-table').addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.classList.contains('edit-customer-btn')) {
-                    const customer = customers.find(c => c.id == id);
-                    document.getElementById('customer-modal-title').textContent = 'Edit Customer';
-                    document.getElementById('customer-id').value = customer.id;
-                    document.getElementById('customer-name').value = customer.name;
-                    document.getElementById('customer-email').value = customer.email;
-                    document.getElementById('customer-phone').value = customer.phone;
-                    customerModal.classList.remove('hidden');
-                }
-                if (e.target.classList.contains('delete-customer-btn')) {
-                    if (confirm('Are you sure you want to delete this customer?')) {
-                        deleteDoc(doc(db, "customers", id));
-                    }
-                }
-                if (e.target.classList.contains('view-history-btn')) {
-                    const customer = customers.find(c => c.id == id);
-                    const customerSales = sales.filter(s => s.customerId == id);
-                    const historyContent = document.getElementById('customer-history-content');
-                    document.getElementById('customer-history-modal-title').textContent = `Purchase History for ${customer.name}`;
-                    
-                    if (customerSales.length === 0) {
-                        historyContent.innerHTML = '<p>No purchases found for this customer.</p>';
-                    } else {
-                        historyContent.innerHTML = `
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="bg-gray-200">
-                                        <th class="p-3">Product</th>
-                                        <th class="p-3">Price</th>
-                                        <th class="p-3">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${customerSales.map(sale => {
-                                        const product = inventory.find(p => p.id === sale.productId);
-                                        return `
-                                            <tr>
-                                                <td class="p-3 border-b">${product ? `${product.brand} ${product.model}` : 'N/A'}</td>
-                                                <td class="p-3 border-b">$${sale.price}</td>
-                                                <td class="p-3 border-b">${new Date(sale.date.seconds * 1000).toLocaleDateString()}</td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        `;
-                    }
-                    customerHistoryModal.classList.remove('hidden');
-                }
-            });
-
-            document.getElementById('suppliers-table').addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                if (e.target.classList.contains('edit-supplier-btn')) {
-                    const supplier = suppliers.find(s => s.id == id);
-                    document.getElementById('supplier-modal-title').textContent = 'Edit Supplier';
-                    document.getElementById('supplier-id').value = supplier.id;
-                    document.getElementById('supplier-name').value = supplier.name;
-                    document.getElementById('supplier-contact').value = supplier.contact;
-                    document.getElementById('supplier-email').value = supplier.email;
-                    document.getElementById('supplier-phone').value = supplier.phone;
-                    supplierModal.classList.remove('hidden');
-                }
-                if (e.target.classList.contains('delete-supplier-btn')) {
-                    if (confirm('Are you sure you want to delete this supplier?')) {
-                        deleteDoc(doc(db, "suppliers", id));
-                    }
-                }
-            });
-
-            // --- GEMINI & ANALYSIS FEATURES ---
-            document.getElementById('generate-description-btn').addEventListener('click', async () => {
-                const category = document.getElementById('category').value;
-                const brand = document.getElementById('brand').value;
-                const model = document.getElementById('model').value;
-                if (!brand || !model) {
-                    alert('Please enter a brand and model first.');
-                    return;
-                }
-                const loader = document.getElementById('description-loader');
-                loader.classList.remove('hidden');
-                const prompt = `Write a short, exciting product description for a ${brand} ${model}, which is a ${category}. Make it sound appealing to a customer in a mobile shop.`;
-                const description = await callGemini(prompt);
-                document.getElementById('description').value = description;
-                loader.classList.add('hidden');
-            });
-            
-            document.getElementById('sale-product').addEventListener('change', async (e) => {
-                const productId = e.target.value;
-                const suggestionContainer = document.getElementById('sales-suggestion-container');
-                const suggestionDiv = document.getElementById('sales-suggestions');
-                const loader = document.getElementById('suggestion-loader');
-
-                if (!productId) {
-                    suggestionContainer.classList.add('hidden');
-                    return;
-                }
-
-                suggestionContainer.classList.remove('hidden');
-                suggestionDiv.innerHTML = '';
-                loader.classList.remove('hidden');
-                
-                const product = inventory.find(p => p.id == productId);
-                const prompt = `A customer is buying a ${product.brand} ${product.model}. Suggest 3 accessories they might also want to buy, like cases, screen protectors, or chargers. Provide the suggestions as a simple comma-separated list (e.g., "Silicone Case, Glass Screen Protector, Fast Charger").`;
-                
-                const suggestions = await callGemini(prompt);
-                loader.classList.add('hidden');
-                
-                suggestionDiv.innerHTML = suggestions.split(',').map(s => `<span class="bg-gray-200 text-gray-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">${s.trim()}</span>`).join('');
-            });
-
-            const showAnalysisLoader = () => {
-                const analysisContent = document.getElementById('analysis-content');
-                analysisContent.innerHTML = `<div class="flex justify-center items-center h-48"><div class="loader"></div></div>`;
-                analysisModal.classList.remove('hidden');
-            };
-
-            document.getElementById('view-sales-report-btn').addEventListener('click', async () => {
-                document.getElementById('analysis-modal-title').textContent = 'AI Sales Analysis';
-                showAnalysisLoader();
-
-                const salesWithCost = sales.map(sale => {
-                    const product = inventory.find(p => p.id === sale.productId);
-                    return { ...sale, cost: product ? product.cost : 0 };
-                });
-                
-                const prompt = `I am the owner of a mobile shop. Here is my sales data: ${JSON.stringify(salesWithCost)}. And here are my expenses: ${JSON.stringify(expenses)}. Please provide a brief analysis of my business performance. Include total revenue, total cost of goods sold, gross profit, total expenses, and net profit. Also, identify the best-selling product. Present it in a clean, easy-to-read format.`;
-                
-                const report = await callGemini(prompt);
-                document.getElementById('analysis-content').textContent = report;
-            });
-
-            document.getElementById('view-inventory-report-btn').addEventListener('click', async () => {
-                document.getElementById('analysis-modal-title').textContent = 'AI Inventory Analysis';
-                showAnalysisLoader();
-                
-                const prompt = `I am the owner of a mobile shop. Here is my current inventory data: ${JSON.stringify(inventory)}. Please provide a brief analysis of my inventory. Identify the total value of my current stock (based on cost). List any items with low stock (5 or fewer units). Highlight the product with the highest stock value. Present it in a clean, easy-to-read format.`;
-                
-                const report = await callGemini(prompt);
-                document.getElementById('analysis-content').textContent = report;
-            });
-
-            // --- CSV EXPORT ---
-            function exportToCsv(filename, rows) {
-                if (rows.length === 0) return;
-                const processRow = row => Object.values(row).map(val => `"${(val === null || val === undefined) ? '' : String(val).replace(/"/g, '""')}"`).join(',');
-                const csvContent = "data:text/csv;charset=utf-8," + [Object.keys(rows[0]).join(',')].concat(rows.map(processRow)).join('\n');
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", filename);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
             }
+            
+            // Reset state
+            setCart([]);
+            setDiscount(0);
+            setSearchTerm('');
+            // A simple alert. For a better UX, use a custom modal/toast notification.
+            window.alert('Sale completed successfully!');
 
-            document.getElementById('export-inventory-btn').addEventListener('click', () => {
-                exportToCsv('inventory.csv', inventory.map(item => {
-                    const supplier = suppliers.find(s => s.id === item.supplierId);
-                    return {...item, supplierName: supplier ? supplier.name : ''};
-                }));
-            });
+        } catch (error) {
+            console.error("Error completing sale:", error);
+            window.alert('Failed to complete sale.');
+        }
+    };
 
-            document.getElementById('export-sales-btn').addEventListener('click', () => {
-                exportToCsv('sales.csv', sales.map(sale => {
-                    const product = inventory.find(p => p.id === sale.productId);
-                    const customer = customers.find(c => c.id === sale.customerId);
-                    return {
-                        saleId: sale.id,
-                        product: product ? `${product.brand} ${product.model}` : 'N/A',
-                        customer: customer ? customer.name : 'N/A',
-                        price: sale.price,
-                        date: new Date(sale.date.seconds * 1000).toLocaleDateString()
-                    };
-                }));
-            });
+    return (
+        <div className="grid h-full grid-cols-1 gap-6 p-6 lg:grid-cols-3">
+            {/* Product Selection */}
+            <div className="lg:col-span-2">
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="mb-4 text-xl font-semibold">{t('newSale')}</h3>
+                    <input
+                        type="text"
+                        placeholder={t('searchProducts')}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full mb-4 input-style"
+                    />
+                    <div className="grid grid-cols-2 gap-4 overflow-y-auto md:grid-cols-3 lg:grid-cols-4 max-h-96">
+                        {filteredProducts.map(product => (
+                            <div key={product.id} onClick={() => addToCart(product)} className="p-4 text-center bg-gray-100 rounded-lg cursor-pointer dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900">
+                                <p className="font-semibold text-gray-800 dark:text-white">{product.name}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">${product.sellingPrice.toFixed(2)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
 
-            document.getElementById('export-customers-btn').addEventListener('click', () => {
-                exportToCsv('customers.csv', customers);
-            });
+            {/* Invoice */}
+            <div className="lg:col-span-1">
+                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+                    <h3 className="mb-4 text-xl font-semibold">{t('invoice')}</h3>
+                    <div className="space-y-2 overflow-y-auto max-h-60">
+                        {cart.length === 0 ? <p className="text-gray-500">Cart is empty</p> :
+                         cart.map(item => (
+                            <div key={item.productId} className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-gray-800 dark:text-white">{item.name}</p>
+                                    <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="number"
+                                        value={item.quantity}
+                                        onChange={(e) => updateQuantity(item.productId, parseInt(e.target.value))}
+                                        className="w-16 text-center input-style"
+                                    />
+                                    <button onClick={() => removeFromCart(item.productId)} className="text-red-500 hover:text-red-700">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-between mb-2"><span>{t('subtotal')}</span><span>${subtotal.toFixed(2)}</span></div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span>{t('discount')} ($)</span>
+                            <input type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} className="w-24 text-right input-style" />
+                        </div>
+                         <div className="flex items-center justify-between mb-2">
+                            <span>{t('tax')} (%)</span>
+                            <input type="number" value={tax} onChange={e => setTax(parseFloat(e.target.value) || 0)} className="w-24 text-right input-style" />
+                        </div>
+                        <div className="flex justify-between text-xl font-bold"><span>{t('grandTotal')}</span><span>${grandTotal.toFixed(2)}</span></div>
+                    </div>
+                    <button onClick={completeSale} disabled={cart.length === 0} className="w-full px-4 py-3 mt-6 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">
+                        {t('completeSale')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-            // --- REAL-TIME LISTENERS (FIRESTORE) ---
-            const renderAll = () => {
-                renderInventory();
-                renderSales();
-                renderRepairs();
-                renderExpenses();
-                renderCustomers();
-                renderSuppliers();
-                renderDashboard();
-                updateLowStockNotification();
-            };
+const PlaceholderPage = ({ title }) => (
+    <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{title}</h2>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">This feature is under construction.</p>
+        </div>
+    </div>
+);
 
-            onSnapshot(collection(db, "inventory"), (snapshot) => {
-                inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-            onSnapshot(collection(db, "sales"), (snapshot) => {
-                sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-            onSnapshot(collection(db, "customers"), (snapshot) => {
-                customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-            onSnapshot(collection(db, "expenses"), (snapshot) => {
-                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-            onSnapshot(collection(db, "suppliers"), (snapshot) => {
-                suppliers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-            onSnapshot(collection(db, "repairs"), (snapshot) => {
-                repairs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAll();
-            });
-        });
-    </script>
-</body>
-</html>
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+    return (
+        <ThemeProvider>
+            <LanguageProvider>
+                <AuthProvider>
+                    <MainApp />
+                </AuthProvider>
+            </LanguageProvider>
+        </ThemeProvider>
+    );
+}
+
+const MainApp = () => {
+    const { loading } = useAuth();
+    const [activePage, setActivePage] = useState('dashboard');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+    const toggleMobileSidebar = () => setIsMobileSidebarOpen(!isMobileSidebarOpen);
+
+    const renderPage = () => {
+        switch (activePage) {
+            case 'dashboard': return <Dashboard />;
+            case 'products': return <Products />;
+            case 'sales': return <Sales />;
+            case 'expenses': return <PlaceholderPage title="Expenses" />;
+            case 'customers': return <PlaceholderPage title="Customers" />;
+            case 'stock': return <PlaceholderPage title="Stock/Inventory" />;
+            case 'reports': return <PlaceholderPage title="Reports" />;
+            case 'tasks': return <PlaceholderPage title="Tasks & Reminders" />;
+            default: return <Dashboard />;
+        }
+    };
+
+    if (loading) {
+        return <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">Loading...</div>;
+    }
+
+    return (
+        <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+            {/* Desktop Sidebar */}
+            <div className="hidden md:flex">
+                 <Sidebar activePage={activePage} setActivePage={setActivePage} isSidebarOpen={isSidebarOpen} />
+            </div>
+
+            {/* Mobile Sidebar Overlay */}
+            {isMobileSidebarOpen && (
+                 <div className="fixed inset-0 z-30 bg-black opacity-50 md:hidden" onClick={toggleMobileSidebar}></div>
+            )}
+            
+            {/* Mobile Sidebar */}
+            <div className={`fixed inset-y-0 left-0 z-40 flex md:hidden transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
+                <Sidebar activePage={activePage} setActivePage={(page) => {setActivePage(page); setIsMobileSidebarOpen(false);}} isSidebarOpen={true} />
+            </div>
+
+
+            <div className="flex flex-col flex-1 overflow-hidden">
+                <Header 
+                    toggleSidebar={toggleSidebar} 
+                    isSidebarOpen={isSidebarOpen} 
+                    toggleMobileSidebar={toggleMobileSidebar} 
+                />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                    {renderPage()}
+                </main>
+            </div>
+        </div>
+    );
+};
