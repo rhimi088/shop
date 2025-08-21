@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -591,6 +591,8 @@
             modalBackdrop.classList.add('hidden');
             modal.classList.add('hidden');
             modal.querySelector('form').reset();
+            const errorDiv = modal.querySelector('.text-red-500');
+            if (errorDiv) errorDiv.classList.add('hidden');
         }
 
         document.getElementById('add-product-btn').addEventListener('click', () => openModal(productModal));
@@ -789,53 +791,113 @@
         // Form Submissions
         document.getElementById('product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('product-id').value;
-            const product = {
-                name: document.getElementById('product-name').value,
-                category: document.getElementById('product-category').value,
-                purchasePrice: parseFloat(document.getElementById('product-purchase-price').value),
-                sellingPrice: parseFloat(document.getElementById('product-selling-price').value),
-                quantity: parseInt(document.getElementById('product-quantity').value),
-                lowStockLevel: parseInt(document.getElementById('product-low-stock').value),
-            };
-            if (id) {
-                await setDoc(doc(db, "products", id), product);
-            } else {
-                await addDoc(collection(db, "products"), product);
+            const saveButton = document.getElementById('save-product-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('product-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('product-id').value;
+                const product = {
+                    name: document.getElementById('product-name').value,
+                    category: document.getElementById('product-category').value,
+                    purchasePrice: parseFloat(document.getElementById('product-purchase-price').value),
+                    sellingPrice: parseFloat(document.getElementById('product-selling-price').value),
+                    quantity: parseInt(document.getElementById('product-quantity').value),
+                    lowStockLevel: parseInt(document.getElementById('product-low-stock').value),
+                };
+                if (id) {
+                    await setDoc(doc(db, "products", id), product);
+                } else {
+                    await addDoc(collection(db, "products"), product);
+                }
+                closeModal(productModal);
+            } catch (error) {
+                console.error("Error saving product:", error);
+                errorDiv.textContent = "Failed to save product. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
             }
-            closeModal(productModal);
         });
 
         document.getElementById('expense-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('expense-id').value;
-            const expense = {
-                date: document.getElementById('expense-date').value,
-                description: document.getElementById('expense-description').value,
-                amount: parseFloat(document.getElementById('expense-amount').value),
-            };
-            if (id) {
-                await setDoc(doc(db, "expenses", id), expense);
-            } else {
-                await addDoc(collection(db, "expenses"), expense);
+             const saveButton = document.getElementById('save-expense-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('expense-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('expense-id').value;
+                const expense = {
+                    date: document.getElementById('expense-date').value,
+                    description: document.getElementById('expense-description').value,
+                    amount: parseFloat(document.getElementById('expense-amount').value),
+                };
+                if (id) {
+                    await setDoc(doc(db, "expenses", id), expense);
+                } else {
+                    await addDoc(collection(db, "expenses"), expense);
+                }
+                closeModal(expenseModal);
+            } catch (error) {
+                console.error("Error saving expense:", error);
+                errorDiv.textContent = "Failed to save expense. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
             }
-            closeModal(expenseModal);
         });
 
         document.getElementById('customer-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('customer-id').value;
-            const customer = {
-                name: document.getElementById('customer-name').value,
-                phone: document.getElementById('customer-phone').value,
-                address: document.getElementById('customer-address').value,
-            };
-            if (id) {
-                await setDoc(doc(db, "customers", id), customer);
-            } else {
-                await addDoc(collection(db, "customers"), customer);
+            const saveButton = document.getElementById('save-customer-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('customer-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('customer-id').value;
+                const customer = {
+                    name: document.getElementById('customer-name').value,
+                    phone: document.getElementById('customer-phone').value,
+                    address: document.getElementById('customer-address').value,
+                };
+                if (id) {
+                    await setDoc(doc(db, "customers", id), customer);
+                } else {
+                    await addDoc(collection(db, "customers"), customer);
+                }
+                closeModal(customerModal);
+            } catch (error) {
+                console.error("Error saving customer:", error);
+                errorDiv.textContent = "Failed to save customer. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
             }
-            closeModal(customerModal);
         });
 
         // POS Logic
@@ -1015,3 +1077,5 @@
     </script>
 </body>
 </html>
+
+
