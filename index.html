@@ -31,191 +31,263 @@
             background-color: var(--card-bg);
             border: 1px solid var(--border);
         }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        [data-admin-only="true"] {
+            display: none; /* Hidden by default */
+        }
     </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
 
-    <!-- Main App Section -->
-    <div id="app-section" class="flex h-screen w-full">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-slate-800 text-white flex-col fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-200 ease-in-out">
-            <div class="p-4 text-2xl font-bold border-b border-slate-700 text-center">
-                <span data-lang-key="app_title">Mobile Shop</span>
-            </div>
-            <nav class="flex-1 p-4 space-y-2">
-                <a href="#" data-section="dashboard" class="sidebar-link active flex items-center py-2 px-4 rounded-lg"><span data-lang-key="dashboard">Dashboard</span></a>
-                <a href="#" data-section="products" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="products">Products</span></a>
-                <a href="#" data-section="pos" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="pos">Sales Terminal</span></a>
-                <a href="#" data-section="expenses" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="expenses">Expenses</span></a>
-                <a href="#" data-section="customers" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="customers">Customers</span></a>
-                <a href="#" data-section="history" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="history">Stock History</span></a>
-            </nav>
-        </aside>
-
-        <div class="flex-1 flex flex-col">
-            <!-- Header -->
-            <header class="bg-white dark:bg-slate-800 shadow-md p-4 flex justify-between items-center">
-                <button id="menu-toggle" class="md:hidden text-slate-500">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                </button>
-                <h1 class="text-xl font-semibold text-slate-700 dark:text-slate-200" id="header-title" data-lang-key="dashboard">Dashboard</h1>
-                <div class="flex items-center space-x-4">
-                    <button id="theme-toggle" class="text-slate-500 dark:text-slate-400">
-                        <svg id="theme-icon-light" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                        <svg id="theme-icon-dark" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                    </button>
-                    <select id="language-switcher" class="bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md p-1">
-                        <option value="en">English</option>
-                        <option value="ps">پښتو</option>
-                    </select>
+    <!-- Auth Section -->
+    <div id="auth-section" class="flex items-center justify-center h-screen">
+        <div class="w-full max-w-md">
+            <form id="login-form" class="card p-8 rounded-lg shadow-xl">
+                <h2 class="text-2xl font-bold mb-6 text-center" data-lang-key="login">Login</h2>
+                <div id="login-error" class="text-red-500 text-center mb-4 hidden"></div>
+                <div class="mb-4">
+                    <label class="block mb-1" for="login-email">Email</label>
+                    <input class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" id="login-email" type="email" placeholder="Email" required>
                 </div>
-            </header>
+                <div class="mb-6">
+                    <label class="block mb-1" for="login-password">Password</label>
+                    <input class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" id="login-password" type="password" placeholder="******************" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded" type="submit">Sign In</button>
+                    <a id="show-register" class="inline-block align-baseline font-bold text-sm text-indigo-600 hover:text-indigo-800" href="#">Create an Account</a>
+                </div>
+            </form>
 
-            <!-- Main Content -->
-            <main class="flex-1 p-6 overflow-y-auto">
-                <!-- Dashboard Section -->
-                <section id="dashboard-section">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="font-semibold" data-lang-key="sales_today">Sales Today</h3>
-                            <p class="text-2xl font-bold" id="sales-today">$0.00</p>
-                        </div>
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="font-semibold" data-lang-key="profit_today">Profit Today</h3>
-                            <p class="text-2xl font-bold" id="profit-today">$0.00</p>
-                        </div>
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="font-semibold" data-lang-key="expenses_today">Expenses Today</h3>
-                            <p class="text-2xl font-bold" id="expenses-today">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="card p-4 rounded-lg shadow mb-6">
-                        <h3 class="font-semibold mb-4" data-lang-key="weekly_sales">Weekly Sales</h3>
-                        <canvas id="sales-chart"></canvas>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="font-semibold mb-4" data-lang-key="top_selling">Top Selling Products</h3>
-                            <ul id="top-products-list" class="space-y-2"></ul>
-                        </div>
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="font-semibold mb-4 text-red-500" data-lang-key="low_stock">Low Stock Alerts</h3>
-                            <ul id="low-stock-list" class="space-y-2"></ul>
-                        </div>
-                    </div>
-                </section>
+            <form id="register-form" class="card p-8 rounded-lg shadow-xl hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center" data-lang-key="register">Register</h2>
+                 <div id="register-error" class="text-red-500 text-center mb-4 hidden"></div>
+                <div class="mb-4">
+                    <label class="block mb-1" for="register-email">Email</label>
+                    <input class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" id="register-email" type="email" placeholder="Email" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block mb-1" for="register-password">Password</label>
+                    <input class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" id="register-password" type="password" placeholder="******************" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" type="submit">Register</button>
+                    <a id="show-login" class="inline-block align-baseline font-bold text-sm text-indigo-600 hover:text-indigo-800" href="#">Already have an account?</a>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                <!-- Products Section -->
-                <section id="products-section" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold" data-lang-key="manage_products">Manage Products</h2>
-                        <button id="add-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_product">Add Product</span></button>
-                    </div>
-                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="border-b dark:border-slate-700">
-                                    <th class="p-2" data-lang-key="product_name">Name</th>
-                                    <th class="p-2" data-lang-key="category">Category</th>
-                                    <th class="p-2" data-lang-key="purchase_price">Purchase Price</th>
-                                    <th class="p-2" data-lang-key="selling_price">Selling Price</th>
-                                    <th class="p-2" data-lang-key="quantity">Quantity</th>
-                                    <th class="p-2" data-lang-key="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="products-table"></tbody>
-                        </table>
-                    </div>
-                </section>
+    <!-- Main App Section -->
+    <div id="app-section" class="hidden h-screen w-full">
+        <div class="flex h-full">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="w-64 bg-slate-800 text-white flex-col fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-200 ease-in-out">
+                <div class="p-4 text-2xl font-bold border-b border-slate-700 text-center">
+                    <span data-lang-key="app_title">Mobile Shop</span>
+                </div>
+                <nav class="flex-1 p-4 space-y-2">
+                    <a href="#" data-section="dashboard" class="sidebar-link active flex items-center py-2 px-4 rounded-lg"><span data-lang-key="dashboard">Dashboard</span></a>
+                    <a href="#" data-section="products" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="products">Products</span></a>
+                    <a href="#" data-section="pos" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="pos">Sales Terminal</span></a>
+                    <a href="#" data-section="expenses" class="sidebar-link flex items-center py-2 px-4 rounded-lg" data-admin-only="true"><span data-lang-key="expenses">Expenses</span></a>
+                    <a href="#" data-section="customers" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="customers">Customers</span></a>
+                    <a href="#" data-section="history" class="sidebar-link flex items-center py-2 px-4 rounded-lg" data-admin-only="true"><span data-lang-key="history">Stock History</span></a>
+                </nav>
+                 <div class="p-4 border-t border-gray-700">
+                    <div id="user-info" class="text-sm mb-2"></div>
+                    <button id="logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</button>
+                </div>
+            </aside>
 
-                <!-- POS Section -->
-                <section id="pos-section" class="hidden">
-                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 card p-4 rounded-lg shadow">
-                            <input type="text" id="product-search" placeholder="Search products..." class="w-full p-2 mb-4 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md">
-                            <div id="product-list-pos" class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto"></div>
-                        </div>
-                        <div class="card p-4 rounded-lg shadow">
-                            <h3 class="text-xl font-bold mb-4" data-lang-key="invoice">Invoice</h3>
-                            <div id="invoice-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
-                            <div class="border-t dark:border-slate-700 pt-4 space-y-2">
-                                <div class="flex justify-between"><span>Subtotal:</span><span id="invoice-subtotal">$0.00</span></div>
-                                <div class="flex items-center justify-between">
-                                    <label for="invoice-discount">Discount ($):</label>
-                                    <input type="number" id="invoice-discount" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <label for="invoice-tax">Tax (%):</label>
-                                    <input type="number" id="invoice-tax" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
-                                </div>
-                                <div class="flex justify-between text-xl font-bold"><span>Total:</span><span id="invoice-total">$0.00</span></div>
-                                <button id="complete-sale-btn" class="w-full bg-green-600 text-white py-2 rounded-lg mt-4">Complete Sale</button>
+            <div class="flex-1 flex flex-col">
+                <!-- Header -->
+                <header class="bg-white dark:bg-slate-800 shadow-md p-4 flex justify-between items-center">
+                    <button id="menu-toggle" class="md:hidden text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <h1 class="text-xl font-semibold text-slate-700 dark:text-slate-200" id="header-title" data-lang-key="dashboard">Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <button id="theme-toggle" class="text-slate-500 dark:text-slate-400">
+                            <svg id="theme-icon-light" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            <svg id="theme-icon-dark" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </button>
+                        <select id="language-switcher" class="bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md p-1">
+                            <option value="en">English</option>
+                            <option value="ps">پښتو</option>
+                        </select>
+                    </div>
+                </header>
+
+                <!-- Main Content -->
+                <main class="flex-1 p-6 overflow-y-auto">
+                    <!-- Dashboard Section -->
+                    <section id="dashboard-section">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="sales_today">Today's Sales</h3>
+                                <p class="text-2xl font-bold" id="sales-today">$0.00</p>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="profit_today">Today's Profit</h3>
+                                <p class="text-2xl font-bold" id="profit-today">$0.00</p>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="expenses_today">Today's Expenses</h3>
+                                <p class="text-2xl font-bold" id="expenses-today">$0.00</p>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="monthly_sales">Monthly Sales</h3>
+                                <p class="text-2xl font-bold" id="monthly-sales">$0.00</p>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="monthly_profit">Monthly Profit</h3>
+                                <p class="text-2xl font-bold" id="monthly-profit">$0.00</p>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold" data-lang-key="monthly_expenses">Monthly Expenses</h3>
+                                <p class="text-2xl font-bold" id="monthly-expenses">$0.00</p>
                             </div>
                         </div>
-                    </div>
-                </section>
+                        <div class="card p-4 rounded-lg shadow mb-6">
+                            <h3 class="font-semibold mb-4" data-lang-key="weekly_sales">Weekly Sales</h3>
+                            <canvas id="sales-chart"></canvas>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold mb-4" data-lang-key="top_selling">Top Selling Products</h3>
+                                <ul id="top-products-list" class="space-y-2"></ul>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="font-semibold mb-4 text-red-500" data-lang-key="low_stock">Low Stock Alerts</h3>
+                                <ul id="low-stock-list" class="space-y-2"></ul>
+                            </div>
+                        </div>
+                    </section>
 
-                <!-- Expenses Section -->
-                <section id="expenses-section" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold" data-lang-key="manage_expenses">Manage Expenses</h2>
-                        <button id="add-expense-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_expense">Add Expense</span></button>
-                    </div>
-                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="border-b dark:border-slate-700">
-                                    <th class="p-2" data-lang-key="date">Date</th>
-                                    <th class="p-2" data-lang-key="description">Description</th>
-                                    <th class="p-2" data-lang-key="amount">Amount</th>
-                                    <th class="p-2" data-lang-key="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="expenses-table"></tbody>
-                        </table>
-                    </div>
-                </section>
+                    <!-- Products Section -->
+                    <section id="products-section" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold" data-lang-key="manage_products">Manage Products</h2>
+                            <button id="add-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_product">Add Product</span></button>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-slate-700">
+                                        <th class="p-2" data-lang-key="product_name">Name</th>
+                                        <th class="p-2" data-lang-key="category">Category</th>
+                                        <th class="p-2" data-lang-key="purchase_price">Purchase Price</th>
+                                        <th class="p-2" data-lang-key="selling_price">Selling Price</th>
+                                        <th class="p-2" data-lang-key="quantity">Quantity</th>
+                                        <th class="p-2" data-lang-key="actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table"></tbody>
+                            </table>
+                        </div>
+                    </section>
 
-                <!-- Customers Section -->
-                <section id="customers-section" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold" data-lang-key="manage_customers">Manage Customers</h2>
-                        <button id="add-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_customer">Add Customer</span></button>
-                    </div>
-                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="border-b dark:border-slate-700">
-                                    <th class="p-2" data-lang-key="customer_name">Name</th>
-                                    <th class="p-2" data-lang-key="phone">Phone</th>
-                                    <th class="p-2" data-lang-key="address">Address</th>
-                                    <th class="p-2" data-lang-key="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customers-table"></tbody>
-                        </table>
-                    </div>
-                </section>
+                    <!-- POS Section -->
+                    <section id="pos-section" class="hidden">
+                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 card p-4 rounded-lg shadow">
+                                <input type="text" id="product-search" placeholder="Search products..." class="w-full p-2 mb-4 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md">
+                                <div id="product-list-pos" class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto"></div>
+                            </div>
+                            <div class="card p-4 rounded-lg shadow">
+                                <h3 class="text-xl font-bold mb-4" data-lang-key="invoice">Invoice</h3>
+                                <div id="invoice-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+                                <div class="border-t dark:border-slate-700 pt-4 space-y-2">
+                                    <div class="flex justify-between"><span>Subtotal:</span><span id="invoice-subtotal">$0.00</span></div>
+                                    <div class="flex items-center justify-between">
+                                        <label for="invoice-discount">Discount ($):</label>
+                                        <input type="number" id="invoice-discount" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <label for="invoice-tax">Tax (%):</label>
+                                        <input type="number" id="invoice-tax" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
+                                    </div>
+                                    <div class="flex justify-between text-xl font-bold"><span>Total:</span><span id="invoice-total">$0.00</span></div>
+                                    <button id="complete-sale-btn" class="w-full bg-green-600 text-white py-2 rounded-lg mt-4">Complete Sale</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-                <!-- History Section -->
-                <section id="history-section" class="hidden">
-                     <h2 class="text-2xl font-bold mb-4" data-lang-key="stock_history">Stock History</h2>
-                     <div class="card p-4 rounded-lg shadow overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="border-b dark:border-slate-700">
-                                    <th class="p-2" data-lang-key="date">Date</th>
-                                    <th class="p-2" data-lang-key="product_name">Product</th>
-                                    <th class="p-2" data-lang-key="transaction_type">Type</th>
-                                    <th class="p-2" data-lang-key="quantity_change">Change</th>
-                                    <th class="p-2" data-lang-key="remaining_stock">Remaining</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-table"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </main>
+                    <!-- Expenses Section -->
+                    <section id="expenses-section" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold" data-lang-key="manage_expenses">Manage Expenses</h2>
+                            <button id="add-expense-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_expense">Add Expense</span></button>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-slate-700">
+                                        <th class="p-2" data-lang-key="date">Date</th>
+                                        <th class="p-2" data-lang-key="description">Description</th>
+                                        <th class="p-2" data-lang-key="amount">Amount</th>
+                                        <th class="p-2" data-lang-key="actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenses-table"></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Customers Section -->
+                    <section id="customers-section" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold" data-lang-key="manage_customers">Manage Customers</h2>
+                            <button id="add-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_customer">Add Customer</span></button>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-slate-700">
+                                        <th class="p-2" data-lang-key="customer_name">Name</th>
+                                        <th class="p-2" data-lang-key="phone">Phone</th>
+                                        <th class="p-2" data-lang-key="address">Address</th>
+                                        <th class="p-2" data-lang-key="actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-table"></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- History Section -->
+                    <section id="history-section" class="hidden">
+                         <h2 class="text-2xl font-bold mb-4" data-lang-key="stock_history">Stock History</h2>
+                         <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-slate-700">
+                                        <th class="p-2" data-lang-key="date">Date</th>
+                                        <th class="p-2" data-lang-key="product_name">Product</th>
+                                        <th class="p-2" data-lang-key="transaction_type">Type</th>
+                                        <th class="p-2" data-lang-key="quantity_change">Change</th>
+                                        <th class="p-2" data-lang-key="remaining_stock">Remaining</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+            </div>
         </div>
     </div>
 
@@ -228,6 +300,7 @@
             <h3 id="product-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Product</h3>
             <form id="product-form" class="p-4 space-y-4">
                 <input type="hidden" id="product-id">
+                <div id="product-error" class="text-red-500 text-sm mb-2 hidden"></div>
                 <div>
                     <label for="product-name" class="block mb-1">Name</label>
                     <input type="text" id="product-name" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
@@ -258,7 +331,10 @@
                 </div>
                 <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
                     <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Save</button>
+                    <button type="submit" id="save-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
                 </div>
             </form>
         </div>
@@ -270,6 +346,7 @@
             <h3 id="expense-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Expense</h3>
             <form id="expense-form" class="p-4 space-y-4">
                 <input type="hidden" id="expense-id">
+                <div id="expense-error" class="text-red-500 text-sm mb-2 hidden"></div>
                 <div>
                     <label for="expense-date" class="block mb-1">Date</label>
                     <input type="date" id="expense-date" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
@@ -284,7 +361,10 @@
                 </div>
                 <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
                     <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Save</button>
+                    <button type="submit" id="save-expense-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
                 </div>
             </form>
         </div>
@@ -296,6 +376,7 @@
             <h3 id="customer-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Customer</h3>
             <form id="customer-form" class="p-4 space-y-4">
                 <input type="hidden" id="customer-id">
+                 <div id="customer-error" class="text-red-500 text-sm mb-2 hidden"></div>
                 <div>
                     <label for="customer-name" class="block mb-1">Name</label>
                     <input type="text" id="customer-name" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
@@ -310,7 +391,10 @@
                 </div>
                 <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
                     <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Save</button>
+                    <button type="submit" id="save-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
                 </div>
             </form>
         </div>
@@ -320,7 +404,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, updateDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDBOOTnTWqTYyWTBo8uvuJVd85399hJwOA",
@@ -336,8 +420,6 @@
         const db = getFirestore(app);
         const auth = getAuth();
 
-        signInAnonymously(auth).catch(console.error);
-
         // App State
         let products = [];
         let sales = [];
@@ -345,6 +427,7 @@
         let customers = [];
         let history = [];
         let salesChart;
+        let currentUserRole = null;
 
         // Language Translations
         const translations = {
@@ -356,9 +439,12 @@
                 expenses: "Expenses",
                 customers: "Customers",
                 history: "Stock History",
-                sales_today: "Sales Today",
-                profit_today: "Profit Today",
-                expenses_today: "Expenses Today",
+                sales_today: "Today's Sales",
+                profit_today: "Today's Profit",
+                expenses_today: "Today's Expenses",
+                monthly_sales: "Monthly Sales",
+                monthly_profit: "Monthly Profit",
+                monthly_expenses: "Monthly Expenses",
                 weekly_sales: "Weekly Sales",
                 top_selling: "Top Selling Products",
                 low_stock: "Low Stock Alerts",
@@ -384,7 +470,9 @@
                 stock_history: "Stock History",
                 transaction_type: "Type",
                 quantity_change: "Change",
-                remaining_stock: "Remaining"
+                remaining_stock: "Remaining",
+                login: "Login",
+                register: "Register"
             },
             ps: {
                 app_title: "د موبایل پلورنځی",
@@ -397,6 +485,9 @@
                 sales_today: "د نن ورځې پلور",
                 profit_today: "د نن ورځې ګټه",
                 expenses_today: "د نن ورځې لګښتونه",
+                monthly_sales: "میاشتنی پلور",
+                monthly_profit: "میاشتنۍ ګټه",
+                monthly_expenses: "میاشتني لګښتونه",
                 weekly_sales: "اوونیز پلور",
                 top_selling: "غوره پلورل شوي محصولات",
                 low_stock: "د کم سټاک خبرتیا",
@@ -422,7 +513,9 @@
                 stock_history: "د سټاک تاریخ",
                 transaction_type: "ډول",
                 quantity_change: "بدلون",
-                remaining_stock: "پاتې"
+                remaining_stock: "پاتې",
+                login: "ننوتل",
+                register: "راجستر"
             }
         };
 
@@ -511,26 +604,33 @@
         });
 
         // Firestore Listeners
-        onSnapshot(collection(db, "products"), (snapshot) => {
-            products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAll();
-        });
-        onSnapshot(collection(db, "sales"), (snapshot) => {
-            sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAll();
-        });
-        onSnapshot(collection(db, "expenses"), (snapshot) => {
-            expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAll();
-        });
-        onSnapshot(collection(db, "customers"), (snapshot) => {
-            customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAll();
-        });
-        onSnapshot(collection(db, "history"), (snapshot) => {
-            history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAll();
-        });
+        let unsubscribers = [];
+        function initializeDataListeners() {
+            // Unsubscribe from old listeners
+            unsubscribers.forEach(unsub => unsub());
+            unsubscribers = [];
+
+            unsubscribers.push(onSnapshot(collection(db, "products"), (snapshot) => {
+                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }));
+            unsubscribers.push(onSnapshot(collection(db, "sales"), (snapshot) => {
+                sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }));
+            unsubscribers.push(onSnapshot(collection(db, "expenses"), (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }));
+            unsubscribers.push(onSnapshot(collection(db, "customers"), (snapshot) => {
+                customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }));
+            unsubscribers.push(onSnapshot(collection(db, "history"), (snapshot) => {
+                history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }));
+        }
 
         function renderAll() {
             renderDashboard();
@@ -543,25 +643,37 @@
 
         // Dashboard Rendering
         function renderDashboard() {
-            const today = new Date().setHours(0, 0, 0, 0);
-            const salesToday = sales.filter(s => new Date(s.date.seconds * 1000) >= today);
-            const expensesToday = expenses.filter(e => new Date(e.date) >= today);
+            const now = new Date();
+            const todayStart = new Date().setHours(0, 0, 0, 0);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const salesToday = sales.filter(s => new Date(s.date.seconds * 1000) >= todayStart);
+            const expensesToday = expenses.filter(e => new Date(e.date) >= todayStart);
+            const salesMonth = sales.filter(s => new Date(s.date.seconds * 1000) >= monthStart);
+            const expensesMonth = expenses.filter(e => new Date(e.date) >= monthStart);
 
             const totalSalesToday = salesToday.reduce((sum, s) => sum + s.total, 0);
             const totalExpensesToday = expensesToday.reduce((sum, e) => sum + e.amount, 0);
             const profitToday = salesToday.reduce((sum, s) => sum + s.profit, 0) - totalExpensesToday;
+            
+            const totalSalesMonth = salesMonth.reduce((sum, s) => sum + s.total, 0);
+            const totalExpensesMonth = expensesMonth.reduce((sum, e) => sum + e.amount, 0);
+            const profitMonth = salesMonth.reduce((sum, s) => sum + s.profit, 0) - totalExpensesMonth;
 
             document.getElementById('sales-today').textContent = `$${totalSalesToday.toFixed(2)}`;
             document.getElementById('profit-today').textContent = `$${profitToday.toFixed(2)}`;
             document.getElementById('expenses-today').textContent = `$${totalExpensesToday.toFixed(2)}`;
+            document.getElementById('monthly-sales').textContent = `$${totalSalesMonth.toFixed(2)}`;
+            document.getElementById('monthly-profit').textContent = `$${profitMonth.toFixed(2)}`;
+            document.getElementById('monthly-expenses').textContent = `$${totalExpensesMonth.toFixed(2)}`;
             
             // Weekly Sales Chart
             const weeklySalesData = Array(7).fill(0);
             const todayDay = new Date().getDay();
             sales.forEach(sale => {
                 const saleDate = new Date(sale.date.seconds * 1000);
-                const diffDays = Math.floor((today - saleDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
-                if (diffDays < 7) {
+                const diffDays = Math.floor((todayStart - saleDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays < 7) {
                     weeklySalesData[(todayDay - diffDays + 7) % 7] += sale.total;
                 }
             });
@@ -826,6 +938,79 @@
             document.getElementById('invoice-discount').value = 0;
             document.getElementById('invoice-tax').value = 0;
             alert('Sale completed!');
+        });
+
+        // Authentication Logic
+        const authSection = document.getElementById('auth-section');
+        const appSection = document.getElementById('app-section');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+
+        document.getElementById('show-register').addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+        });
+
+        document.getElementById('show-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch(error => {
+                    loginError.textContent = error.message;
+                    loginError.classList.remove('hidden');
+                });
+        });
+
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    setDoc(doc(db, "users", user.uid), {
+                        email: user.email,
+                        role: "employee"
+                    });
+                })
+                .catch(error => {
+                    registerError.textContent = error.message;
+                    registerError.classList.remove('hidden');
+                });
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                currentUserRole = userDoc.exists() ? userDoc.data().role : 'employee';
+                
+                document.getElementById('user-info').textContent = `${user.email} (${currentUserRole})`;
+                document.querySelectorAll('[data-admin-only]').forEach(el => {
+                    el.style.display = currentUserRole === 'admin' ? '' : 'none';
+                });
+
+                authSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                initializeDataListeners();
+            } else {
+                authSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+                unsubscribers.forEach(unsub => unsub());
+            }
         });
     </script>
 </body>
