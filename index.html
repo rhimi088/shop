@@ -1,661 +1,617 @@
-import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, query, where, setDoc, getDoc, orderBy } from 'firebase/firestore';
-import { Home, Package, ShoppingCart, Users, BarChart2, DollarSign, List, Calendar, Settings, LogOut, Moon, Sun, Menu, X, PlusCircle, Trash2, Edit } from 'lucide-react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 
-// --- FIREBASE CONFIG (Netlify & Local Ready) ---
-let firebaseConfig;
+// --- ICONS (Lucide React SVGs) ---
+// To keep this self-contained, icons are included as components.
+// In a real app, you'd use a library like `lucide-react`.
 
-// This logic checks if the code is running in a build environment (like Netlify) 
-// where 'process' is defined. If not, it falls back to the local/preview config to avoid errors.
-if (typeof process !== 'undefined' && process.env.REACT_APP_API_KEY) {
-  firebaseConfig = {
-    apiKey: process.env.REACT_APP_API_KEY,
-    authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-    projectId: process.env.REACT_APP_PROJECT_ID,
-    storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-    messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-    appId: process.env.REACT_APP_APP_ID
+const HomeIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+);
+const PackageIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16.5 9.4a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /><path d="M19 13.3a9 9 0 1 1-14 0" /><path d="M12 17.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5Z" /></svg>
+);
+const ShoppingCartIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16" /></svg>
+);
+const UsersIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+);
+const TruckIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11" /><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2" /><circle cx="7" cy="18" r="2" /><path d="M15 18H9" /><circle cx="17" cy="18" r="2" /></svg>
+);
+const WrenchIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+);
+const BarChartIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></svg>
+);
+const SettingsIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+);
+const SearchIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+);
+const PlusCircleIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="16" /><line x1="8" x2="16" y1="12" y2="12" /></svg>
+);
+const ChevronDownIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6" /></svg>
+);
+const BellIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+);
+const QrCodeIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h.01" /><path d="M21 12h.01" /><path d="M12 21v-1a2 2 0 0 1 2-2h1" /></svg>
+);
+const Trash2Icon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
+);
+const DollarSignIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+);
+const AlertTriangleIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+);
+
+// --- MOCK DATA ---
+// This simulates your Supabase database for a runnable prototype.
+
+const MOCK_USER = {
+  name: 'Alex Chen',
+  role: 'Owner',
+  avatarUrl: 'https://placehold.co/100x100/E2E8F0/4A5568?text=AC'
+};
+
+const INITIAL_MOCK_PRODUCTS = [
+  { id: 1, sku: 'APL-IP15P-256', name: 'iPhone 15 Pro - 256GB', category: 'Smartphones', brand: 'Apple', cost: 850.00, price: 1099.00, quantity: 8, has_imei: true },
+  { id: 2, sku: 'SAM-GS24U-256', name: 'Galaxy S24 Ultra - 256GB', category: 'Smartphones', brand: 'Samsung', cost: 900.00, price: 1199.00, quantity: 3, has_imei: true },
+  { id: 3, sku: 'ANK-PC10K', name: 'Anker PowerCore 10000', category: 'Accessories', brand: 'Anker', cost: 25.00, price: 49.99, quantity: 22, has_imei: false },
+  { id: 4, sku: 'SPG-CS-IP15P', name: 'Spigen Case for iPhone 15 Pro', category: 'Accessories', brand: 'Spigen', cost: 15.00, price: 34.99, quantity: 15, has_imei: false },
+  { id: 5, sku: 'REP-SCR-IP15P', name: 'iPhone 15 Pro Screen Replacement', category: 'Repair Parts', brand: 'OEM', cost: 120.00, price: 249.00, quantity: 5, has_imei: false },
+];
+
+const MOCK_REPAIRS = [
+    { id: 1, ticket: 'R2025-001', customer: 'John Doe', device: 'iPhone 14', status: 'In Progress', technician: 'Jane Smith', created_at: '2025-08-20' },
+    { id: 2, ticket: 'R2025-002', customer: 'Emily White', device: 'Galaxy S23', status: 'Waiting for Parts', technician: 'Jane Smith', created_at: '2025-08-19' },
+    { id: 3, ticket: 'R2025-003', customer: 'Michael Brown', device: 'Pixel 7', status: 'Ready for Pickup', technician: 'Alex Chen', created_at: '2025-08-18' },
+];
+
+// --- CONTEXT for Global State ---
+const AppContext = createContext();
+
+// --- UI COMPONENTS ---
+
+const Card = ({ children, className = '' }) => (
+  <div className={`bg-white rounded-lg shadow p-4 sm:p-6 ${className}`}>
+    {children}
+  </div>
+);
+
+const Button = ({ children, onClick, variant = 'primary', className = '', type = 'button' }) => {
+  const baseClasses = 'px-4 py-2 rounded-md font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200';
+  const variants = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   };
-} else {
-  firebaseConfig = typeof __firebase_config !== 'undefined' 
-    ? JSON.parse(__firebase_config)
-    : {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-      };
-}
-
-
-// --- APP INITIALIZATION ---
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// --- APP ID ---
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'rahimi-mobile-manager';
-
-// --- TRANSLATION DATA ---
-const translations = {
-  en: {
-    dashboard: 'Dashboard', products: 'Products', sales: 'Sales', expenses: 'Expenses', customers: 'Customers', stock: 'Stock/Inventory', reports: 'Reports', tasks: 'Tasks & Reminders', settings: 'Settings', logout: 'Logout', rahimiMobileManager: 'Rahimi Mobile Manager', dailyOverview: 'Daily Overview', salesToday: 'Sales Today', profitToday: 'Profit Today', expensesToday: 'Expenses Today', topSellingProducts: 'Top Selling Products', lowStockAlerts: 'Low Stock Alerts', manageProducts: 'Manage Products', addProduct: 'Add Product', productName: 'Product Name', purchasePrice: 'Purchase Price', sellingPrice: 'Selling Price', quantity: 'Quantity', category: 'Category', actions: 'Actions', edit: 'Edit', delete: 'Delete', save: 'Save', cancel: 'Cancel', newSale: 'New Sale', searchProducts: 'Search products...', invoice: 'Invoice', qty: 'Qty', price: 'Price', total: 'Total', subtotal: 'Subtotal', discount: 'Discount', tax: 'Tax', grandTotal: 'Grand Total', completeSale: 'Complete Sale', manageExpenses: 'Manage Expenses', addExpense: 'Add Expense', expenseDescription: 'Description', amount: 'Amount', date: 'Date', manageCustomers: 'Manage Customers', addCustomer: 'Add Customer', customerName: 'Customer Name', phone: 'Phone', address: 'Address', stockHistory: 'Stock History', product: 'Product', type: 'Type', change: 'Change', remainingStock: 'Remaining Stock', sale: 'Sale', purchase: 'Purchase', adjustment: 'Adjustment',
-  },
-  ps: {
-    dashboard: 'ډشبورډ', products: 'محصولات', sales: 'پلورنې', expenses: 'لګښتونه', customers: 'پیرودونکي', stock: 'ګدام', reports: 'راپورونه', tasks: 'دندې او یادونې', settings: 'ترتیبات', logout: 'وتل', rahimiMobileManager: 'رحیمي موبایل مدیر', dailyOverview: 'ورځنی کتنه', salesToday: 'نننۍ پلورنې', profitToday: 'نننۍ ګټه', expensesToday: 'ننني لګښتونه', topSellingProducts: 'غوره پلورل شوي محصولات', lowStockAlerts: 'د کم মজودۍ خبرتیا', manageProducts: 'د محصولاتو مدیریت', addProduct: 'نوی محصول اضافه کړئ', productName: 'د محصول نوم', purchasePrice: 'د پیرودلو بیه', sellingPrice: 'د پلورلو بیه', quantity: 'مقدار', category: 'وېشنيزه', actions: 'کړنې', edit: 'سمول', delete: 'ړنګول', save: 'خوندي کول', cancel: 'لغوه کول', newSale: 'نوی پلور', searchProducts: 'محصولات وپلټئ...', invoice: 'بیل', qty: 'مقدار', price: 'بیه', total: 'ټول', subtotal: 'فرعي ټول', discount: 'تخفیف', tax: 'مالیه', grandTotal: 'لوی ټول', completeSale: 'پلور بشپړ کړئ', manageExpenses: 'د لګښتونو مدیریت', addExpense: 'نوی لګښت', expenseDescription: 'تفصیل', amount: 'مقدار', date: 'نیټه', manageCustomers: 'د پیرودونکو مدیریت', addCustomer: 'نوی پیرودونکی', customerName: 'د پیرودونکي نوم', phone: 'تلیفون', address: 'پته', stockHistory: 'د ګدام تاریخ', product: 'محصول', type: 'ډول', change: 'بدلون', remainingStock: 'پاتې مقدار', sale: 'پلور', purchase: 'پیرود', adjustment: 'سمون',
-  },
+  return (
+    <button type={type} onClick={onClick} className={`${baseClasses} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
 };
 
-// --- CONTEXTS ---
-const AuthContext = createContext(null);
-const LanguageContext = createContext(null);
-const ThemeContext = createContext(null);
+const Input = ({ id, label, type = 'text', placeholder, value, onChange, className = '' }) => (
+    <div>
+        {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
+        <input
+            id={id}
+            type={type}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
+        />
+    </div>
+);
 
-// --- HOOKS ---
-const useAuth = () => useContext(AuthContext);
-const useLanguage = () => {
-    const context = useContext(LanguageContext);
-    if (!context) throw new Error("useLanguage must be used within a LanguageProvider");
-    return context;
-};
-const useTheme = () => useContext(ThemeContext);
-
-// --- PROVIDERS ---
-const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [userId, setUserId] = useState(null);
-
-    useEffect(() => {
-        const performAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                setLoading(false);
-            }
-        };
-
-        const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-            if (authUser) {
-                const currentUser = { uid: authUser.uid, email: 'user@shop.com', role: 'Admin' };
-                setUser(currentUser);
-                setUserId(authUser.uid);
-            } else {
-                setUser(null);
-                setUserId(null);
-            }
-            setLoading(false);
-        });
-
-        performAuth();
-        return () => unsubscribe();
-    }, []);
-
-    const value = { user, loading, userId };
-    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
-};
-
-const LanguageProvider = ({ children }) => {
-    const [language, setLanguage] = useState('en');
-    const t = (key) => translations[language][key] || key;
-    return <LanguageContext.Provider value={{ language, setLanguage, t }}>{children}</LanguageContext.Provider>;
-};
-
-const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('light');
-    const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove(theme === 'light' ? 'dark' : 'light');
-        root.classList.add(theme);
-    }, [theme]);
-
-    return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
-};
-
-// --- Reusable Modal Component ---
 const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
-            <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl dark:bg-gray-800 transform transition-all">
-                <div className="flex items-center justify-between pb-3 border-b dark:border-gray-600">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <X size={24} />
-                    </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+                <div className="p-4 border-b flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">{title}</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                 </div>
-                <div className="mt-4">{children}</div>
+                <div className="p-4 sm:p-6">
+                    {children}
+                </div>
             </div>
         </div>
     );
 };
 
 
-// --- COMPONENTS ---
+// --- LAYOUT COMPONENTS ---
 
-const Sidebar = ({ activePage, setActivePage, isSidebarOpen }) => {
-    const { t } = useLanguage();
-    const navItems = [
-        { id: 'dashboard', label: t('dashboard'), icon: Home },
-        { id: 'products', label: t('products'), icon: Package },
-        { id: 'sales', label: t('sales'), icon: ShoppingCart },
-        { id: 'expenses', label: t('expenses'), icon: DollarSign },
-        { id: 'customers', label: t('customers'), icon: Users },
-        { id: 'stock', label: t('stock'), icon: List },
-        { id: 'reports', label: t('reports'), icon: BarChart2 },
-        { id: 'tasks', label: t('tasks'), icon: Calendar },
-    ];
+const Sidebar = ({ currentPage, navigate }) => {
+  const navItems = [
+    { name: 'Dashboard', icon: HomeIcon, page: 'dashboard' },
+    { name: 'Inventory', icon: PackageIcon, page: 'inventory' },
+    { name: 'POS', icon: ShoppingCartIcon, page: 'pos' },
+    { name: 'Customers', icon: UsersIcon, page: 'customers' },
+    { name: 'Suppliers', icon: TruckIcon, page: 'suppliers' },
+    { name: 'Repairs', icon: WrenchIcon, page: 'repairs' },
+    { name: 'Reports', icon: BarChartIcon, page: 'reports' },
+    { name: 'Settings', icon: SettingsIcon, page: 'settings' },
+  ];
 
-    return (
-        <aside className={`bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex flex-col transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
-            <div className={`flex items-center justify-center h-20 border-b border-gray-200 dark:border-gray-700 ${isSidebarOpen ? 'px-4' : ''}`}>
-                <ShoppingCart className="w-8 h-8 text-indigo-500" />
-                {isSidebarOpen && <h1 className="ml-3 text-xl font-bold">{t('rahimiMobileManager')}</h1>}
-            </div>
-            <nav className="flex-1 px-2 py-4 space-y-2">
-                {navItems.map(item => (
-                    <a
-                        key={item.id}
-                        href="#"
-                        onClick={(e) => { e.preventDefault(); setActivePage(item.id); }}
-                        className={`flex items-center p-3 text-base font-normal rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group ${activePage === item.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
-                    >
-                        <item.icon className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" />
-                        {isSidebarOpen && <span className="ml-3 flex-1 whitespace-nowrap">{item.label}</span>}
-                    </a>
-                ))}
-            </nav>
-        </aside>
-    );
+  return (
+    <aside className="w-64 bg-gray-800 text-white flex-shrink-0 flex flex-col">
+      <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-gray-700">
+        MobileShop
+      </div>
+      <nav className="flex-1 px-2 py-4 space-y-1">
+        {navItems.map(item => (
+          <a
+            key={item.name}
+            href="#"
+            onClick={(e) => { e.preventDefault(); navigate(item.page); }}
+            className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors duration-200 ${
+              currentPage === item.page ? 'bg-gray-900' : 'hover:bg-gray-700'
+            }`}
+          >
+            <item.icon className="h-5 w-5 mr-3" />
+            {item.name}
+          </a>
+        ))}
+      </nav>
+    </aside>
+  );
 };
 
-const Header = ({ toggleSidebar, isSidebarOpen, toggleMobileSidebar }) => {
-    const { language, setLanguage } = useLanguage();
-    const { theme, toggleTheme } = useTheme();
-
-    return (
-        <header className="flex items-center justify-between h-20 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-                 <button onClick={toggleMobileSidebar} className="p-2 -ml-2 text-gray-600 rounded-md md:hidden dark:text-gray-300">
-                    <Menu size={24} />
-                </button>
-                <button onClick={toggleSidebar} className="hidden p-2 -ml-2 text-gray-600 rounded-md md:block dark:text-gray-300">
-                    <Menu size={24} />
-                </button>
-            </div>
-            <div className="flex items-center space-x-4">
-                <button onClick={toggleTheme} className="p-2 text-gray-600 rounded-full hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
-                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                </button>
-                <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="px-3 py-2 text-sm bg-gray-100 border-gray-300 rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none"
-                >
-                    <option value="en">English</option>
-                    <option value="ps">پښتو</option>
-                </select>
-            </div>
-        </header>
-    );
+const Header = ({ user }) => {
+  return (
+    <header className="h-16 bg-white shadow-sm flex items-center justify-between px-4 sm:px-6">
+      <div>
+        {/* Can add breadcrumbs or page title here */}
+      </div>
+      <div className="flex items-center space-x-4">
+        <button className="text-gray-500 hover:text-gray-700">
+          <BellIcon className="h-6 w-6" />
+        </button>
+        <div className="flex items-center">
+          <img src={user.avatarUrl} alt="User Avatar" className="h-8 w-8 rounded-full" />
+          <div className="ml-3">
+            <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+            <p className="text-xs text-gray-500">{user.role}</p>
+          </div>
+          <ChevronDownIcon className="h-4 w-4 ml-1 text-gray-500" />
+        </div>
+      </div>
+    </header>
+  );
 };
+
+const AppLayout = ({ children }) => {
+  const { navigate, currentPage } = useContext(AppContext);
+  return (
+    <div className="flex h-screen bg-gray-100 font-sans">
+      <Sidebar currentPage={currentPage} navigate={navigate} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header user={MOCK_USER} />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+
+// --- PAGE COMPONENTS ---
 
 const Dashboard = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [sales, setSales] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [expenses, setExpenses] = useState([]);
+    const { navigate, products } = useContext(AppContext);
+    const stats = [
+        { title: "Today's Sales", value: "$1,845.60", change: "+5.2%", changeType: 'increase' },
+        { title: "Today's Profit", value: "$620.15", change: "+3.8%", changeType: 'increase' },
+        { title: "Open Repairs", value: "7", change: "-1", changeType: 'decrease' },
+        { title: "Low Stock Items", value: "3", change: "+2", changeType: 'increase' },
+    ];
 
-    useEffect(() => {
-        if (!userId) return;
-        const salesPath = `/artifacts/${appId}/users/${userId}/sales`;
-        const productsPath = `/artifacts/${appId}/users/${userId}/products`;
-        const expensesPath = `/artifacts/${appId}/users/${userId}/expenses`;
-
-        const salesUnsub = onSnapshot(collection(db, salesPath), (snapshot) => setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        const productsUnsub = onSnapshot(collection(db, productsPath), (snapshot) => setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        const expensesUnsub = onSnapshot(collection(db, expensesPath), (snapshot) => setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-        return () => { salesUnsub(); productsUnsub(); expensesUnsub(); };
-    }, [userId]);
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    const salesToday = useMemo(() => sales.filter(s => s.date?.toDate().toISOString().split('T')[0] === today), [sales, today]);
-    const expensesToday = useMemo(() => expenses.filter(e => e.date?.toDate().toISOString().split('T')[0] === today), [expenses, today]);
-    
-    const totalSalesToday = useMemo(() => salesToday.reduce((sum, s) => sum + s.grandTotal, 0), [salesToday]);
-    const totalExpensesToday = useMemo(() => expensesToday.reduce((sum, e) => sum + e.amount, 0), [expensesToday]);
-    
-    const totalCostToday = useMemo(() => {
-        return salesToday.reduce((cost, sale) => {
-            const saleCost = sale.items.reduce((itemCost, item) => {
-                const product = products.find(p => p.id === item.productId);
-                return itemCost + (product ? product.purchasePrice * item.quantity : 0);
-            }, 0);
-            return cost + saleCost;
-        }, 0);
-    }, [salesToday, products]);
-
-    const profitToday = totalSalesToday - totalCostToday;
-    
-    const topSellingProducts = useMemo(() => {
-        const productSales = {};
-        sales.forEach(sale => sale.items.forEach(item => {
-            productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
-        }));
-        return Object.entries(productSales)
-            .sort(([, qtyA], [, qtyB]) => qtyB - qtyA).slice(0, 5)
-            .map(([productId, quantity]) => {
-                const product = products.find(p => p.id === productId);
-                return { name: product ? product.name : 'Unknown', quantity };
-            });
-    }, [sales, products]);
-
-    const lowStockProducts = useMemo(() => products.filter(p => p.quantity <= (p.lowStockLevel || 5)), [products]);
-
-    const salesData = useMemo(() => {
-         const last7Days = Array.from({length: 7}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
-        return last7Days.map(date => ({ name: new Date(date).toLocaleDateString('en-US', { weekday: 'short'}), sales: sales.filter(s => s.date?.toDate().toISOString().split('T')[0] === date).reduce((sum, s) => sum + s.grandTotal, 0) }));
-    }, [sales]);
+    const lowStockItems = products.filter(p => p.quantity <= 5).slice(0, 3);
 
     return (
-        <div className="p-6 space-y-6">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('dashboard')}</h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800"><h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('salesToday')}</h3><p className="text-3xl font-bold text-gray-900 dark:text-white">${totalSalesToday.toFixed(2)}</p></div>
-                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800"><h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('profitToday')}</h3><p className={`text-3xl font-bold ${profitToday >= 0 ? 'text-green-500' : 'text-red-500'}`}>${profitToday.toFixed(2)}</p></div>
-                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800"><h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">{t('expensesToday')}</h3><p className="text-3xl font-bold text-gray-900 dark:text-white">${totalExpensesToday.toFixed(2)}</p></div>
+        <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
+            
+            <div className="mb-6 flex space-x-2 sm:space-x-4">
+                <Button onClick={() => navigate('pos')} className="flex items-center space-x-2"><ShoppingCartIcon className="h-5 w-5"/><span>New Sale</span></Button>
+                <Button onClick={() => navigate('repairs')} variant="secondary" className="flex items-center space-x-2"><WrenchIcon className="h-5 w-5"/><span>New Repair</span></Button>
+                <Button onClick={() => navigate('inventory')} variant="secondary" className="flex items-center space-x-2"><PackageIcon className="h-5 w-5"/><span>Receive Stock</span></Button>
             </div>
-            <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">Sales Overview (Last 7 Days)</h3>
-                <ResponsiveContainer width="100%" height={300}><BarChart data={salesData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none' }}/><Legend /><Bar dataKey="sales" fill="#4f46e5" /></BarChart></ResponsiveContainer>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+                {stats.map(stat => (
+                    <Card key={stat.title}>
+                        <p className="text-sm font-medium text-gray-500">{stat.title}</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    </Card>
+                ))}
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                    <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">{t('topSellingProducts')}</h3>
-                    <ul className="space-y-2">{topSellingProducts.map((p, i) => <li key={i} className="flex justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"><span className="text-gray-700 dark:text-gray-300">{p.name}</span><span className="font-semibold text-gray-900 dark:text-white">{p.quantity} sold</span></li>)}</ul>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                    <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white">{t('lowStockAlerts')}</h3>
-                     <ul className="space-y-2">{lowStockProducts.length > 0 ? lowStockProducts.map(p => <li key={p.id} className="flex justify-between p-2 text-yellow-600 bg-yellow-100 rounded dark:bg-yellow-900/20 dark:text-yellow-400"><span>{p.name}</span><span className="font-semibold">Only {p.quantity} left</span></li>) : <p className="text-gray-500 dark:text-gray-400">No low stock items.</p>}</ul>
-                </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+                <Card className="lg:col-span-2">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
+                    <p className="text-gray-600">Activity feed coming soon...</p>
+                </Card>
+
+                <Card>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Low Stock Alerts</h2>
+                    <ul className="space-y-3">
+                        {lowStockItems.map(item => (
+                            <li key={item.id} className="flex justify-between items-center">
+                                <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-500">SKU: {item.sku}</p>
+                                </div>
+                                <span className="text-red-600 font-bold text-lg">{item.quantity}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
             </div>
         </div>
     );
 };
 
-const Products = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [products, setProducts] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingProduct, setEditingProduct] = useState(null);
-    const [formData, setFormData] = useState({ name: '', purchasePrice: '', sellingPrice: '', quantity: '', category: 'Mobiles' });
-
-    const productsPath = useMemo(() => `/artifacts/${appId}/users/${userId}/products`, [userId]);
-
-    useEffect(() => {
-        if (!userId) return;
-        const q = query(collection(db, productsPath));
-        const unsubscribe = onSnapshot(q, (snapshot) => setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        return () => unsubscribe();
-    }, [userId, productsPath]);
-
-    const handleOpenModal = (product = null) => {
-        setEditingProduct(product);
-        setFormData(product ? { ...product } : { name: '', purchasePrice: '', sellingPrice: '', quantity: '', category: 'Mobiles' });
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => { setIsModalOpen(false); setEditingProduct(null); };
-
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const productData = { ...formData, purchasePrice: parseFloat(formData.purchasePrice), sellingPrice: parseFloat(formData.sellingPrice), quantity: parseInt(formData.quantity, 10) };
-        try {
-            if (editingProduct) {
-                await updateDoc(doc(db, productsPath, editingProduct.id), productData);
-            } else {
-                await addDoc(collection(db, productsPath), { ...productData, createdAt: new Date() });
-            }
-            handleCloseModal();
-        } catch (error) { console.error("Error saving product:", error); }
-    };
-
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure?')) {
-            try { await deleteDoc(doc(db, productsPath, id)); } 
-            catch (error) { console.error("Error deleting product:", error); }
-        }
-    };
-    
-    const categories = ["Mobiles", "Chargers", "Memory Cards", "Cables", "Power Banks", "Software Services"];
-
-    return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6"><h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('manageProducts')}</h2><button onClick={() => handleOpenModal()} className="px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-2"><PlusCircle size={18}/> {t('addProduct')}</button></div>
-            <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th scope="col" className="px-6 py-3">{t('productName')}</th><th scope="col" className="px-6 py-3">{t('category')}</th><th scope="col" className="px-6 py-3">{t('purchasePrice')}</th><th scope="col" className="px-6 py-3">{t('sellingPrice')}</th><th scope="col" className="px-6 py-3">{t('quantity')}</th><th scope="col" className="px-6 py-3">{t('actions')}</th></tr></thead>
-                    <tbody>{products.map(p => <tr key={p.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"><td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{p.name}</td><td className="px-6 py-4">{p.category}</td><td className="px-6 py-4">${p.purchasePrice?.toFixed(2)}</td><td className="px-6 py-4">${p.sellingPrice?.toFixed(2)}</td><td className="px-6 py-4">{p.quantity}</td><td className="px-6 py-4 space-x-4 flex items-center"><button onClick={() => handleOpenModal(p)} className="font-medium text-indigo-600 dark:text-indigo-500 hover:underline"><Edit size={18}/></button><button onClick={() => handleDelete(p.id)} className="font-medium text-red-600 dark:text-red-500 hover:underline"><Trash2 size={18}/></button></td></tr>)}</tbody>
-                </table>
-            </div>
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingProduct ? t('edit') : t('addProduct')}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('productName')}</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('category')}</label><select name="category" value={formData.category} onChange={handleChange} required className="w-full mt-1 input-style">{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('purchasePrice')}</label><input type="number" step="0.01" name="purchasePrice" value={formData.purchasePrice} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('sellingPrice')}</label><input type="number" step="0.01" name="sellingPrice" value={formData.sellingPrice} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    </div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('quantity')}</label><input type="number" name="quantity" value={formData.quantity} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div className="flex justify-end pt-4 space-x-3"><button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded-lg dark:bg-gray-600">{t('cancel')}</button><button type="submit" className="px-4 py-2 text-white bg-indigo-600 rounded-lg">{t('save')}</button></div>
-                </form>
-            </Modal>
-        </div>
-    );
-};
-
-const Sales = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [products, setProducts] = useState([]);
+const POS = () => {
+    const { products } = useContext(AppContext);
     const [cart, setCart] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [discount, setDiscount] = useState(0);
-    const [tax, setTax] = useState(0);
-
-    const productsPath = useMemo(() => `/artifacts/${appId}/users/${userId}/products`, [userId]);
-    const salesPath = useMemo(() => `/artifacts/${appId}/users/${userId}/sales`, [userId]);
+    const [searchResults, setSearchResults] = useState([]);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
     useEffect(() => {
-        if (!userId) return;
-        const unsubscribe = onSnapshot(collection(db, productsPath), (snapshot) => setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        return () => unsubscribe();
-    }, [userId, productsPath]);
+        if (searchTerm) {
+            const results = products.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setSearchResults(results);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchTerm, products]);
 
     const addToCart = (product) => {
-        setCart(prev => {
-            const existing = prev.find(item => item.productId === product.id);
-            if (existing) return prev.map(item => item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-            return [...prev, { productId: product.id, name: product.name, price: product.sellingPrice, quantity: 1 }];
-        });
+        const existingItem = cart.find(item => item.id === product.id);
+        if (existingItem) {
+            setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+        } else {
+            setCart([...cart, { ...product, quantity: 1 }]);
+        }
+        setSearchTerm('');
+        setSearchResults([]);
     };
 
-    const updateQuantity = (productId, newQuantity) => setCart(prev => prev.map(item => item.productId === productId ? { ...item, quantity: Math.max(0, newQuantity) } : item).filter(item => item.quantity > 0));
-    const removeFromCart = (productId) => setCart(prev => prev.filter(item => item.productId !== productId));
-
-    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.quantity > 0);
-
-    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
-    const grandTotal = useMemo(() => subtotal - discount + (subtotal * tax / 100), [subtotal, discount, tax]);
-
-    const completeSale = async () => {
-        if (cart.length === 0) return;
-        const saleData = { items: cart, subtotal, discount, tax, grandTotal, date: new Date() };
-        try {
-            await addDoc(collection(db, salesPath), saleData);
-            for (const item of cart) {
-                const productRef = doc(db, productsPath, item.productId);
-                const productSnap = await getDoc(productRef);
-                if (productSnap.exists()) {
-                    await updateDoc(productRef, { quantity: productSnap.data().quantity - item.quantity });
-                }
-            }
-            setCart([]); setDiscount(0); setSearchTerm('');
-            alert('Sale completed successfully!');
-        } catch (error) { console.error("Error completing sale:", error); alert('Failed to complete sale.'); }
-    };
-
-    return (
-        <div className="grid h-full grid-cols-1 gap-6 p-6 lg:grid-cols-3">
-            <div className="lg:col-span-2"><div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800"><h3 className="mb-4 text-xl font-semibold">{t('newSale')}</h3><input type="text" placeholder={t('searchProducts')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full mb-4 input-style" /><div className="grid grid-cols-2 gap-4 overflow-y-auto md:grid-cols-3 lg:grid-cols-4 max-h-96">{filteredProducts.map(p => <div key={p.id} onClick={() => addToCart(p)} className="p-4 text-center bg-gray-100 rounded-lg cursor-pointer dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900"><p className="font-semibold text-gray-800 dark:text-white">{p.name}</p><p className="text-sm text-gray-600 dark:text-gray-400">${p.sellingPrice.toFixed(2)}</p></div>)}</div></div></div>
-            <div className="lg:col-span-1"><div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800"><h3 className="mb-4 text-xl font-semibold">{t('invoice')}</h3><div className="space-y-2 overflow-y-auto max-h-60">{cart.length === 0 ? <p className="text-gray-500">Cart is empty</p> : cart.map(item => <div key={item.productId} className="flex items-center justify-between"><div><p className="font-medium text-gray-800 dark:text-white">{item.name}</p><p className="text-sm text-gray-500">${item.price.toFixed(2)}</p></div><div className="flex items-center space-x-2"><input type="number" value={item.quantity} onChange={(e) => updateQuantity(item.productId, parseInt(e.target.value))} className="w-16 text-center input-style" /><button onClick={() => removeFromCart(item.productId)} className="text-red-500 hover:text-red-700"><X size={16} /></button></div></div>)}</div><div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700"><div className="flex justify-between mb-2"><span>{t('subtotal')}</span><span>${subtotal.toFixed(2)}</span></div><div className="flex items-center justify-between mb-2"><span>{t('discount')} ($)</span><input type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} className="w-24 text-right input-style" /></div><div className="flex items-center justify-between mb-2"><span>{t('tax')} (%)</span><input type="number" value={tax} onChange={e => setTax(parseFloat(e.target.value) || 0)} className="w-24 text-right input-style" /></div><div className="flex justify-between text-xl font-bold"><span>{t('grandTotal')}</span><span>${grandTotal.toFixed(2)}</span></div></div><button onClick={completeSale} disabled={cart.length === 0} className="w-full px-4 py-3 mt-6 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">{t('completeSale')}</button></div></div>
-        </div>
-    );
-};
-
-const Expenses = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [expenses, setExpenses] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
-
-    const expensesPath = useMemo(() => `/artifacts/${appId}/users/${userId}/expenses`, [userId]);
-
-    useEffect(() => {
-        if (!userId) return;
-        const q = query(collection(db, expensesPath));
-        const unsubscribe = onSnapshot(q, (snapshot) => setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        return () => unsubscribe();
-    }, [userId, expensesPath]);
-    
-    const handleOpenModal = () => setIsModalOpen(true);
-    const handleCloseModal = () => setIsModalOpen(false);
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const expenseData = { ...formData, amount: parseFloat(formData.amount), date: new Date(formData.date) };
-        try {
-            await addDoc(collection(db, expensesPath), expenseData);
-            handleCloseModal();
-            setFormData({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
-        } catch (error) { console.error("Error adding expense:", error); }
-    };
-    
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure?')) {
-            try { await deleteDoc(doc(db, expensesPath, id)); }
-            catch (error) { console.error("Error deleting expense:", error); }
+    const updateQuantity = (productId, newQuantity) => {
+        if (newQuantity <= 0) {
+            setCart(cart.filter(item => item.id !== productId));
+        } else {
+            setCart(cart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
         }
     };
 
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const tax = subtotal * 0.08; // 8% tax
+    const total = subtotal + tax;
+
+    const handleCheckout = () => {
+        if (cart.length > 0) {
+            setPaymentModalOpen(true);
+        } else {
+            alert("Cart is empty!");
+        }
+    };
+    
+    const processPayment = () => {
+        alert("Payment processed! Sale complete.");
+        setCart([]);
+        setPaymentModalOpen(false);
+    }
+
     return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6"><h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('manageExpenses')}</h2><button onClick={handleOpenModal} className="px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-2"><PlusCircle size={18}/> {t('addExpense')}</button></div>
-            <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th scope="col" className="px-6 py-3">{t('date')}</th><th scope="col" className="px-6 py-3">{t('expenseDescription')}</th><th scope="col" className="px-6 py-3">{t('amount')}</th><th scope="col" className="px-6 py-3">{t('actions')}</th></tr></thead>
-                    <tbody>{expenses.map(e => <tr key={e.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"><td className="px-6 py-4">{e.date.toDate().toLocaleDateString()}</td><td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{e.description}</td><td className="px-6 py-4">${e.amount.toFixed(2)}</td><td className="px-6 py-4"><button onClick={() => handleDelete(e.id)} className="font-medium text-red-600 dark:text-red-500 hover:underline"><Trash2 size={18}/></button></td></tr>)}</tbody>
-                </table>
+        <div className="flex flex-col lg:flex-row h-full gap-4 sm:gap-6">
+            <div className="lg:w-2/3 flex flex-col">
+                <Card className="flex-grow flex flex-col">
+                    <div className="relative mb-4">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <Input 
+                            type="text" 
+                            placeholder="Search or scan product SKU..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                        />
+                         {searchResults.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                                {searchResults.map(product => (
+                                    <li key={product.id} onClick={() => addToCart(product)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                        {product.name} <span className="text-sm text-gray-500">({product.sku})</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <div className="flex-grow overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+                         {cart.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                <ShoppingCartIcon className="h-16 w-16 mb-4"/>
+                                <p className="text-lg">Your cart is empty</p>
+                            </div>
+                        ) : (
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th className="px-4 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {cart.map(item => (
+                                    <tr key={item.id}>
+                                        <td className="px-4 py-2 whitespace-nowrap">{item.name}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap">${item.price.toFixed(2)}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                            <input 
+                                                type="number" 
+                                                value={item.quantity}
+                                                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                                                className="w-16 p-1 border rounded-md"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-right">
+                                            <button onClick={() => updateQuantity(item.id, 0)} className="text-red-500 hover:text-red-700">
+                                                <Trash2Icon className="h-5 w-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        )}
+                    </div>
+                </Card>
             </div>
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={t('addExpense')}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('date')}</label><input type="date" name="date" value={formData.date} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('expenseDescription')}</label><input type="text" name="description" value={formData.description} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</label><input type="number" step="0.01" name="amount" value={formData.amount} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div className="flex justify-end pt-4 space-x-3"><button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded-lg dark:bg-gray-600">{t('cancel')}</button><button type="submit" className="px-4 py-2 text-white bg-indigo-600 rounded-lg">{t('save')}</button></div>
-                </form>
+
+            <div className="lg:w-1/3">
+                <Card>
+                    <h2 className="text-xl font-semibold mb-4 border-b pb-2">Order Summary</h2>
+                    <div className="space-y-2 mb-4">
+                        <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                    </div>
+                    <Button onClick={handleCheckout} className="w-full text-lg flex items-center justify-center space-x-2">
+                        <DollarSignIcon className="h-5 w-5" />
+                        <span>Proceed to Payment</span>
+                    </Button>
+                </Card>
+            </div>
+            
+            <Modal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} title="Complete Payment">
+                <div>
+                    <div className="mb-4">
+                        <h3 className="text-2xl font-bold text-center">Total: ${total.toFixed(2)}</h3>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        <Button variant="secondary" className="py-4">Cash</Button>
+                        <Button variant="secondary" className="py-4">Card</Button>
+                        <Button variant="secondary" className="py-4">Transfer</Button>
+                    </div>
+                    <Button onClick={processPayment} className="w-full text-lg">Confirm Payment</Button>
+                </div>
             </Modal>
         </div>
     );
 };
 
-const Customers = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [customers, setCustomers] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingCustomer, setEditingCustomer] = useState(null);
-    const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+const AddProductForm = ({ onAdd, onCancel }) => {
+    const [product, setProduct] = useState({
+        sku: '', name: '', brand: '', price: '', quantity: ''
+    });
 
-    const customersPath = useMemo(() => `/artifacts/${appId}/users/${userId}/customers`, [userId]);
-
-    useEffect(() => {
-        if (!userId) return;
-        const q = query(collection(db, customersPath));
-        const unsubscribe = onSnapshot(q, (snapshot) => setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        return () => unsubscribe();
-    }, [userId, customersPath]);
-
-    const handleOpenModal = (customer = null) => {
-        setEditingCustomer(customer);
-        setFormData(customer ? { ...customer } : { name: '', phone: '', address: '' });
-        setIsModalOpen(true);
+    const handleChange = (e) => {
+        const { id, value } = e.target;
+        setProduct(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleCloseModal = () => { setIsModalOpen(false); setEditingCustomer(null); };
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        try {
-            if (editingCustomer) {
-                await updateDoc(doc(db, customersPath, editingCustomer.id), formData);
-            } else {
-                await addDoc(collection(db, customersPath), { ...formData, createdAt: new Date() });
-            }
-            handleCloseModal();
-        } catch (error) { console.error("Error saving customer:", error); }
-    };
-
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure?')) {
-            try { await deleteDoc(doc(db, customersPath, id)); }
-            catch (error) { console.error("Error deleting customer:", error); }
-        }
+        const newProduct = {
+            id: Date.now(), // Temporary unique ID
+            ...product,
+            price: parseFloat(product.price),
+            quantity: parseInt(product.quantity),
+            cost: parseFloat(product.price) * 0.7, // Mock cost
+        };
+        onAdd(newProduct);
     };
 
     return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6"><h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('manageCustomers')}</h2><button onClick={() => handleOpenModal()} className="px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-2"><PlusCircle size={18}/> {t('addCustomer')}</button></div>
-            <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th scope="col" className="px-6 py-3">{t('customerName')}</th><th scope="col" className="px-6 py-3">{t('phone')}</th><th scope="col" className="px-6 py-3">{t('address')}</th><th scope="col" className="px-6 py-3">{t('actions')}</th></tr></thead>
-                    <tbody>{customers.map(c => <tr key={c.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"><td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{c.name}</td><td className="px-6 py-4">{c.phone}</td><td className="px-6 py-4">{c.address}</td><td className="px-6 py-4 space-x-4 flex items-center"><button onClick={() => handleOpenModal(c)} className="font-medium text-indigo-600 dark:text-indigo-500 hover:underline"><Edit size={18}/></button><button onClick={() => handleDelete(c.id)} className="font-medium text-red-600 dark:text-red-500 hover:underline"><Trash2 size={18}/></button></td></tr>)}</tbody>
-                </table>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <Input id="sku" label="SKU" value={product.sku} onChange={handleChange} placeholder="e.g., APL-IP16-BLK" />
+            <Input id="name" label="Product Name" value={product.name} onChange={handleChange} placeholder="e.g., iPhone 16" />
+            <Input id="brand" label="Brand" value={product.brand} onChange={handleChange} placeholder="e.g., Apple" />
+            <Input id="price" label="Selling Price" type="number" value={product.price} onChange={handleChange} placeholder="e.g., 1199.00" />
+            <Input id="quantity" label="Stock Quantity" type="number" value={product.quantity} onChange={handleChange} placeholder="e.g., 10" />
+            <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+                <Button type="submit">Add Product</Button>
             </div>
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingCustomer ? t('edit') : t('addCustomer')}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('customerName')}</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full mt-1 input-style" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('phone')}</label><input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full mt-1 input-style" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('address')}</label><input type="text" name="address" value={formData.address} onChange={handleChange} className="w-full mt-1 input-style" /></div>
-                    <div className="flex justify-end pt-4 space-x-3"><button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded-lg dark:bg-gray-600">{t('cancel')}</button><button type="submit" className="px-4 py-2 text-white bg-indigo-600 rounded-lg">{t('save')}</button></div>
-                </form>
+        </form>
+    );
+};
+
+const InventoryList = () => {
+    const { products, addProduct } = useContext(AppContext);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleAddProduct = (newProduct) => {
+        addProduct(newProduct);
+        setIsModalOpen(false);
+    };
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Inventory</h1>
+                <Button onClick={() => setIsModalOpen(true)}><PlusCircleIcon className="h-5 w-5 mr-2"/>Add Product</Button>
+            </div>
+            <Card>
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {products.map(product => (
+                            <tr key={product.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.sku}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.price.toFixed(2)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.quantity > 5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        {product.quantity}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </Card>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Product">
+                <AddProductForm onAdd={handleAddProduct} onCancel={() => setIsModalOpen(false)} />
             </Modal>
         </div>
     );
 };
 
-const Stock = () => {
-    const { t } = useLanguage();
-    const { userId } = useAuth();
-    const [products, setProducts] = useState([]);
-    const [sales, setSales] = useState([]);
-    
-    useEffect(() => {
-        if (!userId) return;
-        const productsPath = `/artifacts/${appId}/users/${userId}/products`;
-        const salesPath = `/artifacts/${appId}/users/${userId}/sales`;
+const RepairTickets = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-        const productsUnsub = onSnapshot(query(collection(db, productsPath)), (snapshot) => setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        const salesUnsub = onSnapshot(query(collection(db, salesPath)), (snapshot) => setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-        
-        return () => { productsUnsub(); salesUnsub(); };
-    }, [userId]);
-
-    const stockHistory = useMemo(() => {
-        const history = [];
-        sales.forEach(sale => {
-            sale.items.forEach(item => {
-                const product = products.find(p => p.id === item.productId);
-                history.push({
-                    date: sale.date,
-                    productName: product ? product.name : 'Unknown',
-                    type: 'Sale',
-                    change: -item.quantity,
-                    remaining: product ? product.quantity : 'N/A'
-                });
-            });
-        });
-        // You can add purchases here in the future
-        return history.sort((a, b) => b.date.toMillis() - a.date.toMillis());
-    }, [sales, products]);
+    const RepairIntakeForm = () => {
+        return (
+            <form className="space-y-4">
+                <Input id="customerName" label="Customer Name" placeholder="e.g., John Doe" />
+                <Input id="deviceModel" label="Device Brand & Model" placeholder="e.g., Apple iPhone 14 Pro" />
+                <Input id="imei" label="IMEI / Serial Number" placeholder="Enter device serial number" />
+                <div>
+                    <label htmlFor="problem" className="block text-sm font-medium text-gray-700">Problem Description</label>
+                    <textarea id="problem" rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Describe the issue..."></textarea>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                    <Button type="submit">Create Ticket</Button>
+                </div>
+            </form>
+        );
+    }
 
     return (
-        <div className="p-6">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">{t('stockHistory')}</h2>
-            <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th scope="col" className="px-6 py-3">{t('date')}</th><th scope="col" className="px-6 py-3">{t('product')}</th><th scope="col" className="px-6 py-3">{t('type')}</th><th scope="col" className="px-6 py-3">{t('change')}</th><th scope="col" className="px-6 py-3">{t('remainingStock')}</th></tr></thead>
-                    <tbody>{stockHistory.map((h, i) => <tr key={i} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"><td className="px-6 py-4">{h.date.toDate().toLocaleString()}</td><td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{h.productName}</td><td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${h.type === 'Sale' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'}`}>{t(h.type.toLowerCase())}</span></td><td className={`px-6 py-4 font-semibold ${h.change < 0 ? 'text-red-500' : 'text-green-500'}`}>{h.change}</td><td className="px-6 py-4">{h.remaining}</td></tr>)}</tbody>
-                </table>
+        <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Repair Tickets</h1>
+                <Button onClick={() => setIsModalOpen(true)}><PlusCircleIcon className="h-5 w-5 mr-2"/>New Repair Ticket</Button>
             </div>
+            <Card>
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket #</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {MOCK_REPAIRS.map(repair => (
+                            <tr key={repair.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:underline cursor-pointer">{repair.ticket}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{repair.customer}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{repair.device}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        {repair.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </Card>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Repair Intake">
+                <RepairIntakeForm />
+            </Modal>
         </div>
     );
 };
-
 
 const PlaceholderPage = ({ title }) => (
-    <div className="flex items-center justify-center h-full p-6"><div className="text-center"><h2 className="text-3xl font-bold text-gray-800 dark:text-white">{title}</h2><p className="mt-2 text-gray-500 dark:text-gray-400">This feature is under construction.</p></div></div>
+    <div>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">{title}</h1>
+        <Card>
+            <p className="text-gray-600 text-center py-12">This page is under construction. Check back soon!</p>
+        </Card>
+    </div>
 );
 
 
 // --- MAIN APP COMPONENT ---
+
 export default function App() {
-    return (
-        <ThemeProvider>
-            <LanguageProvider>
-                <AuthProvider>
-                    <MainApp />
-                </AuthProvider>
-            </LanguageProvider>
-        </ThemeProvider>
-    );
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [products, setProducts] = useState(INITIAL_MOCK_PRODUCTS);
+
+  const navigate = (page) => {
+    setCurrentPage(page);
+  };
+
+  const addProduct = (newProduct) => {
+    setProducts(prevProducts => [...prevProducts, newProduct]);
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard': return <Dashboard />;
+      case 'inventory': return <InventoryList />;
+      case 'pos': return <POS />;
+      case 'repairs': return <RepairTickets />;
+      case 'customers': return <PlaceholderPage title="Customers" />;
+      case 'suppliers': return <PlaceholderPage title="Suppliers" />;
+      case 'reports': return <PlaceholderPage title="Reports" />;
+      case 'settings': return <PlaceholderPage title="Settings" />;
+      default: return <Dashboard />;
+    }
+  };
+
+  return (
+    <AppContext.Provider value={{ navigate, currentPage, products, addProduct }}>
+      <AppLayout>
+        {renderPage()}
+      </AppLayout>
+    </AppContext.Provider>
+  );
 }
-
-const MainApp = () => {
-    const { loading } = useAuth();
-    const [activePage, setActivePage] = useState('dashboard');
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-    const toggleMobileSidebar = () => setIsMobileSidebarOpen(!isMobileSidebarOpen);
-
-    const renderPage = () => {
-        switch (activePage) {
-            case 'dashboard': return <Dashboard />;
-            case 'products': return <Products />;
-            case 'sales': return <Sales />;
-            case 'expenses': return <Expenses />;
-            case 'customers': return <Customers />;
-            case 'stock': return <Stock />;
-            case 'reports': return <PlaceholderPage title="Reports" />;
-            case 'tasks': return <PlaceholderPage title="Tasks & Reminders" />;
-            default: return <Dashboard />;
-        }
-    };
-
-    if (loading) return <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">Loading...</div>;
-
-    return (
-        <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="hidden md:flex"><Sidebar activePage={activePage} setActivePage={setActivePage} isSidebarOpen={isSidebarOpen} /></div>
-            {isMobileSidebarOpen && <div className="fixed inset-0 z-30 bg-black opacity-50 md:hidden" onClick={toggleMobileSidebar}></div>}
-            <div className={`fixed inset-y-0 left-0 z-40 flex md:hidden transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}><Sidebar activePage={activePage} setActivePage={(page) => {setActivePage(page); setIsMobileSidebarOpen(false);}} isSidebarOpen={true} /></div>
-            <div className="flex flex-col flex-1 overflow-hidden">
-                <Header toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} toggleMobileSidebar={toggleMobileSidebar} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto">{renderPage()}</main>
-            </div>
-        </div>
-    );
-};
