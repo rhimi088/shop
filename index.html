@@ -1,617 +1,961 @@
-import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Shop Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #f1f5f9;
+            --text: #1e293b;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --primary: #4f46e5;
+        }
+        html.dark {
+            --background: #0f172a;
+            --text: #e2e8f0;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --primary: #818cf8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+        }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
 
-// --- ICONS (Lucide React SVGs) ---
-// To keep this self-contained, icons are included as components.
-// In a real app, you'd use a library like `lucide-react`.
+    <!-- Main App Section -->
+    <div id="app-section" class="flex h-screen w-full">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-slate-800 text-white flex-col fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-200 ease-in-out">
+            <div class="p-4 text-2xl font-bold border-b border-slate-700 text-center">
+                <span data-lang-key="app_title">Mobile Shop</span>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" data-section="dashboard" class="sidebar-link active flex items-center py-2 px-4 rounded-lg"><span data-lang-key="dashboard">Dashboard</span></a>
+                <a href="#" data-section="products" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="products">Products</span></a>
+                <a href="#" data-section="pos" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="pos">Sales Terminal</span></a>
+                <a href="#" data-section="expenses" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="expenses">Expenses</span></a>
+                <a href="#" data-section="customers" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="customers">Customers</span></a>
+                <a href="#" data-section="history" class="sidebar-link flex items-center py-2 px-4 rounded-lg"><span data-lang-key="history">Stock History</span></a>
+            </nav>
+        </aside>
 
-const HomeIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-);
-const PackageIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16.5 9.4a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /><path d="M19 13.3a9 9 0 1 1-14 0" /><path d="M12 17.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5Z" /></svg>
-);
-const ShoppingCartIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.16" /></svg>
-);
-const UsersIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-);
-const TruckIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11" /><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2" /><circle cx="7" cy="18" r="2" /><path d="M15 18H9" /><circle cx="17" cy="18" r="2" /></svg>
-);
-const WrenchIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
-);
-const BarChartIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></svg>
-);
-const SettingsIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
-);
-const SearchIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-);
-const PlusCircleIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="16" /><line x1="8" x2="16" y1="12" y2="12" /></svg>
-);
-const ChevronDownIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6" /></svg>
-);
-const BellIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-);
-const QrCodeIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h.01" /><path d="M21 12h.01" /><path d="M12 21v-1a2 2 0 0 1 2-2h1" /></svg>
-);
-const Trash2Icon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
-);
-const DollarSignIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-);
-const AlertTriangleIcon = (props) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-);
-
-// --- MOCK DATA ---
-// This simulates your Supabase database for a runnable prototype.
-
-const MOCK_USER = {
-  name: 'Alex Chen',
-  role: 'Owner',
-  avatarUrl: 'https://placehold.co/100x100/E2E8F0/4A5568?text=AC'
-};
-
-const INITIAL_MOCK_PRODUCTS = [
-  { id: 1, sku: 'APL-IP15P-256', name: 'iPhone 15 Pro - 256GB', category: 'Smartphones', brand: 'Apple', cost: 850.00, price: 1099.00, quantity: 8, has_imei: true },
-  { id: 2, sku: 'SAM-GS24U-256', name: 'Galaxy S24 Ultra - 256GB', category: 'Smartphones', brand: 'Samsung', cost: 900.00, price: 1199.00, quantity: 3, has_imei: true },
-  { id: 3, sku: 'ANK-PC10K', name: 'Anker PowerCore 10000', category: 'Accessories', brand: 'Anker', cost: 25.00, price: 49.99, quantity: 22, has_imei: false },
-  { id: 4, sku: 'SPG-CS-IP15P', name: 'Spigen Case for iPhone 15 Pro', category: 'Accessories', brand: 'Spigen', cost: 15.00, price: 34.99, quantity: 15, has_imei: false },
-  { id: 5, sku: 'REP-SCR-IP15P', name: 'iPhone 15 Pro Screen Replacement', category: 'Repair Parts', brand: 'OEM', cost: 120.00, price: 249.00, quantity: 5, has_imei: false },
-];
-
-const MOCK_REPAIRS = [
-    { id: 1, ticket: 'R2025-001', customer: 'John Doe', device: 'iPhone 14', status: 'In Progress', technician: 'Jane Smith', created_at: '2025-08-20' },
-    { id: 2, ticket: 'R2025-002', customer: 'Emily White', device: 'Galaxy S23', status: 'Waiting for Parts', technician: 'Jane Smith', created_at: '2025-08-19' },
-    { id: 3, ticket: 'R2025-003', customer: 'Michael Brown', device: 'Pixel 7', status: 'Ready for Pickup', technician: 'Alex Chen', created_at: '2025-08-18' },
-];
-
-// --- CONTEXT for Global State ---
-const AppContext = createContext();
-
-// --- UI COMPONENTS ---
-
-const Card = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-lg shadow p-4 sm:p-6 ${className}`}>
-    {children}
-  </div>
-);
-
-const Button = ({ children, onClick, variant = 'primary', className = '', type = 'button' }) => {
-  const baseClasses = 'px-4 py-2 rounded-md font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200';
-  const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-  };
-  return (
-    <button type={type} onClick={onClick} className={`${baseClasses} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-const Input = ({ id, label, type = 'text', placeholder, value, onChange, className = '' }) => (
-    <div>
-        {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
-        <input
-            id={id}
-            type={type}
-            placeholder={placeholder}
-            value={value}
-            onChange={onChange}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
-        />
-    </div>
-);
-
-const Modal = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">{title}</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-white dark:bg-slate-800 shadow-md p-4 flex justify-between items-center">
+                <button id="menu-toggle" class="md:hidden text-slate-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <h1 class="text-xl font-semibold text-slate-700 dark:text-slate-200" id="header-title" data-lang-key="dashboard">Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="text-slate-500 dark:text-slate-400">
+                        <svg id="theme-icon-light" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg id="theme-icon-dark" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    </button>
+                    <select id="language-switcher" class="bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md p-1">
+                        <option value="en">English</option>
+                        <option value="ps">پښتو</option>
+                    </select>
                 </div>
-                <div className="p-4 sm:p-6">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-};
+            </header>
 
-
-// --- LAYOUT COMPONENTS ---
-
-const Sidebar = ({ currentPage, navigate }) => {
-  const navItems = [
-    { name: 'Dashboard', icon: HomeIcon, page: 'dashboard' },
-    { name: 'Inventory', icon: PackageIcon, page: 'inventory' },
-    { name: 'POS', icon: ShoppingCartIcon, page: 'pos' },
-    { name: 'Customers', icon: UsersIcon, page: 'customers' },
-    { name: 'Suppliers', icon: TruckIcon, page: 'suppliers' },
-    { name: 'Repairs', icon: WrenchIcon, page: 'repairs' },
-    { name: 'Reports', icon: BarChartIcon, page: 'reports' },
-    { name: 'Settings', icon: SettingsIcon, page: 'settings' },
-  ];
-
-  return (
-    <aside className="w-64 bg-gray-800 text-white flex-shrink-0 flex flex-col">
-      <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-gray-700">
-        MobileShop
-      </div>
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        {navItems.map(item => (
-          <a
-            key={item.name}
-            href="#"
-            onClick={(e) => { e.preventDefault(); navigate(item.page); }}
-            className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors duration-200 ${
-              currentPage === item.page ? 'bg-gray-900' : 'hover:bg-gray-700'
-            }`}
-          >
-            <item.icon className="h-5 w-5 mr-3" />
-            {item.name}
-          </a>
-        ))}
-      </nav>
-    </aside>
-  );
-};
-
-const Header = ({ user }) => {
-  return (
-    <header className="h-16 bg-white shadow-sm flex items-center justify-between px-4 sm:px-6">
-      <div>
-        {/* Can add breadcrumbs or page title here */}
-      </div>
-      <div className="flex items-center space-x-4">
-        <button className="text-gray-500 hover:text-gray-700">
-          <BellIcon className="h-6 w-6" />
-        </button>
-        <div className="flex items-center">
-          <img src={user.avatarUrl} alt="User Avatar" className="h-8 w-8 rounded-full" />
-          <div className="ml-3">
-            <p className="text-sm font-semibold text-gray-800">{user.name}</p>
-            <p className="text-xs text-gray-500">{user.role}</p>
-          </div>
-          <ChevronDownIcon className="h-4 w-4 ml-1 text-gray-500" />
-        </div>
-      </div>
-    </header>
-  );
-};
-
-const AppLayout = ({ children }) => {
-  const { navigate, currentPage } = useContext(AppContext);
-  return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      <Sidebar currentPage={currentPage} navigate={navigate} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={MOCK_USER} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-};
-
-
-// --- PAGE COMPONENTS ---
-
-const Dashboard = () => {
-    const { navigate, products } = useContext(AppContext);
-    const stats = [
-        { title: "Today's Sales", value: "$1,845.60", change: "+5.2%", changeType: 'increase' },
-        { title: "Today's Profit", value: "$620.15", change: "+3.8%", changeType: 'increase' },
-        { title: "Open Repairs", value: "7", change: "-1", changeType: 'decrease' },
-        { title: "Low Stock Items", value: "3", change: "+2", changeType: 'increase' },
-    ];
-
-    const lowStockItems = products.filter(p => p.quantity <= 5).slice(0, 3);
-
-    return (
-        <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard</h1>
-            
-            <div className="mb-6 flex space-x-2 sm:space-x-4">
-                <Button onClick={() => navigate('pos')} className="flex items-center space-x-2"><ShoppingCartIcon className="h-5 w-5"/><span>New Sale</span></Button>
-                <Button onClick={() => navigate('repairs')} variant="secondary" className="flex items-center space-x-2"><WrenchIcon className="h-5 w-5"/><span>New Repair</span></Button>
-                <Button onClick={() => navigate('inventory')} variant="secondary" className="flex items-center space-x-2"><PackageIcon className="h-5 w-5"/><span>Receive Stock</span></Button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-                {stats.map(stat => (
-                    <Card key={stat.title}>
-                        <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                    </Card>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                <Card className="lg:col-span-2">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
-                    <p className="text-gray-600">Activity feed coming soon...</p>
-                </Card>
-
-                <Card>
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Low Stock Alerts</h2>
-                    <ul className="space-y-3">
-                        {lowStockItems.map(item => (
-                            <li key={item.id} className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-500">SKU: {item.sku}</p>
-                                </div>
-                                <span className="text-red-600 font-bold text-lg">{item.quantity}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </Card>
-            </div>
-        </div>
-    );
-};
-
-const POS = () => {
-    const { products } = useContext(AppContext);
-    const [cart, setCart] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-
-    useEffect(() => {
-        if (searchTerm) {
-            const results = products.filter(p => 
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setSearchResults(results);
-        } else {
-            setSearchResults([]);
-        }
-    }, [searchTerm, products]);
-
-    const addToCart = (product) => {
-        const existingItem = cart.find(item => item.id === product.id);
-        if (existingItem) {
-            setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
-        } else {
-            setCart([...cart, { ...product, quantity: 1 }]);
-        }
-        setSearchTerm('');
-        setSearchResults([]);
-    };
-
-    const updateQuantity = (productId, newQuantity) => {
-        if (newQuantity <= 0) {
-            setCart(cart.filter(item => item.id !== productId));
-        } else {
-            setCart(cart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
-        }
-    };
-
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = subtotal * 0.08; // 8% tax
-    const total = subtotal + tax;
-
-    const handleCheckout = () => {
-        if (cart.length > 0) {
-            setPaymentModalOpen(true);
-        } else {
-            alert("Cart is empty!");
-        }
-    };
-    
-    const processPayment = () => {
-        alert("Payment processed! Sale complete.");
-        setCart([]);
-        setPaymentModalOpen(false);
-    }
-
-    return (
-        <div className="flex flex-col lg:flex-row h-full gap-4 sm:gap-6">
-            <div className="lg:w-2/3 flex flex-col">
-                <Card className="flex-grow flex flex-col">
-                    <div className="relative mb-4">
-                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input 
-                            type="text" 
-                            placeholder="Search or scan product SKU..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                         {searchResults.length > 0 && (
-                            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
-                                {searchResults.map(product => (
-                                    <li key={product.id} onClick={() => addToCart(product)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                                        {product.name} <span className="text-sm text-gray-500">({product.sku})</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+            <!-- Main Content -->
+            <main class="flex-1 p-6 overflow-y-auto">
+                <!-- Dashboard Section -->
+                <section id="dashboard-section">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="sales_today">Today's Sales</h3>
+                            <p class="text-2xl font-bold" id="sales-today">$0.00</p>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="profit_today">Today's Profit</h3>
+                            <p class="text-2xl font-bold" id="profit-today">$0.00</p>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="expenses_today">Today's Expenses</h3>
+                            <p class="text-2xl font-bold" id="expenses-today">$0.00</p>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="monthly_sales">Monthly Sales</h3>
+                            <p class="text-2xl font-bold" id="monthly-sales">$0.00</p>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="monthly_profit">Monthly Profit</h3>
+                            <p class="text-2xl font-bold" id="monthly-profit">$0.00</p>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold" data-lang-key="monthly_expenses">Monthly Expenses</h3>
+                            <p class="text-2xl font-bold" id="monthly-expenses">$0.00</p>
+                        </div>
                     </div>
+                    <div class="card p-4 rounded-lg shadow mb-6">
+                        <h3 class="font-semibold mb-4" data-lang-key="weekly_sales">Weekly Sales</h3>
+                        <canvas id="sales-chart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold mb-4" data-lang-key="top_selling">Top Selling Products</h3>
+                            <ul id="top-products-list" class="space-y-2"></ul>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="font-semibold mb-4 text-red-500" data-lang-key="low_stock">Low Stock Alerts</h3>
+                            <ul id="low-stock-list" class="space-y-2"></ul>
+                        </div>
+                    </div>
+                </section>
 
-                    <div className="flex-grow overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
-                         {cart.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                                <ShoppingCartIcon className="h-16 w-16 mb-4"/>
-                                <p className="text-lg">Your cart is empty</p>
-                            </div>
-                        ) : (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th className="px-4 py-2"></th>
+                <!-- Products Section -->
+                <section id="products-section" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold" data-lang-key="manage_products">Manage Products</h2>
+                        <button id="add-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_product">Add Product</span></button>
+                    </div>
+                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b dark:border-slate-700">
+                                    <th class="p-2" data-lang-key="product_name">Name</th>
+                                    <th class="p-2" data-lang-key="category">Category</th>
+                                    <th class="p-2" data-lang-key="purchase_price">Purchase Price</th>
+                                    <th class="p-2" data-lang-key="selling_price">Selling Price</th>
+                                    <th class="p-2" data-lang-key="quantity">Quantity</th>
+                                    <th class="p-2" data-lang-key="actions">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {cart.map(item => (
-                                    <tr key={item.id}>
-                                        <td className="px-4 py-2 whitespace-nowrap">{item.name}</td>
-                                        <td className="px-4 py-2 whitespace-nowrap">${item.price.toFixed(2)}</td>
-                                        <td className="px-4 py-2 whitespace-nowrap">
-                                            <input 
-                                                type="number" 
-                                                value={item.quantity}
-                                                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                                                className="w-16 p-1 border rounded-md"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-2 whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</td>
-                                        <td className="px-4 py-2 whitespace-nowrap text-right">
-                                            <button onClick={() => updateQuantity(item.id, 0)} className="text-red-500 hover:text-red-700">
-                                                <Trash2Icon className="h-5 w-5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
+                            <tbody id="products-table"></tbody>
                         </table>
-                        )}
                     </div>
-                </Card>
-            </div>
+                </section>
 
-            <div className="lg:w-1/3">
-                <Card>
-                    <h2 className="text-xl font-semibold mb-4 border-b pb-2">Order Summary</h2>
-                    <div className="space-y-2 mb-4">
-                        <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
-                        <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                <!-- POS Section -->
+                <section id="pos-section" class="hidden">
+                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 card p-4 rounded-lg shadow">
+                            <input type="text" id="product-search" placeholder="Search products..." class="w-full p-2 mb-4 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md">
+                            <div id="product-list-pos" class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto"></div>
+                        </div>
+                        <div class="card p-4 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4" data-lang-key="invoice">Invoice</h3>
+                            <div id="invoice-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+                            <div class="border-t dark:border-slate-700 pt-4 space-y-2">
+                                <div class="flex justify-between"><span>Subtotal:</span><span id="invoice-subtotal">$0.00</span></div>
+                                <div class="flex items-center justify-between">
+                                    <label for="invoice-discount">Discount ($):</label>
+                                    <input type="number" id="invoice-discount" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label for="invoice-tax">Tax (%):</label>
+                                    <input type="number" id="invoice-tax" value="0" class="w-20 p-1 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-right">
+                                </div>
+                                <div class="flex justify-between text-xl font-bold"><span>Total:</span><span id="invoice-total">$0.00</span></div>
+                                <button id="complete-sale-btn" class="w-full bg-green-600 text-white py-2 rounded-lg mt-4">Complete Sale</button>
+                            </div>
+                        </div>
                     </div>
-                    <Button onClick={handleCheckout} className="w-full text-lg flex items-center justify-center space-x-2">
-                        <DollarSignIcon className="h-5 w-5" />
-                        <span>Proceed to Payment</span>
-                    </Button>
-                </Card>
-            </div>
-            
-            <Modal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} title="Complete Payment">
-                <div>
-                    <div className="mb-4">
-                        <h3 className="text-2xl font-bold text-center">Total: ${total.toFixed(2)}</h3>
+                </section>
+
+                <!-- Expenses Section -->
+                <section id="expenses-section" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold" data-lang-key="manage_expenses">Manage Expenses</h2>
+                        <button id="add-expense-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_expense">Add Expense</span></button>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        <Button variant="secondary" className="py-4">Cash</Button>
-                        <Button variant="secondary" className="py-4">Card</Button>
-                        <Button variant="secondary" className="py-4">Transfer</Button>
+                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b dark:border-slate-700">
+                                    <th class="p-2" data-lang-key="date">Date</th>
+                                    <th class="p-2" data-lang-key="description">Description</th>
+                                    <th class="p-2" data-lang-key="amount">Amount</th>
+                                    <th class="p-2" data-lang-key="actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table"></tbody>
+                        </table>
                     </div>
-                    <Button onClick={processPayment} className="w-full text-lg">Confirm Payment</Button>
-                </div>
-            </Modal>
+                </section>
+
+                <!-- Customers Section -->
+                <section id="customers-section" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold" data-lang-key="manage_customers">Manage Customers</h2>
+                        <button id="add-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg"><span data-lang-key="add_customer">Add Customer</span></button>
+                    </div>
+                    <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b dark:border-slate-700">
+                                    <th class="p-2" data-lang-key="customer_name">Name</th>
+                                    <th class="p-2" data-lang-key="phone">Phone</th>
+                                    <th class="p-2" data-lang-key="address">Address</th>
+                                    <th class="p-2" data-lang-key="actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- History Section -->
+                <section id="history-section" class="hidden">
+                     <h2 class="text-2xl font-bold mb-4" data-lang-key="stock_history">Stock History</h2>
+                     <div class="card p-4 rounded-lg shadow overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="border-b dark:border-slate-700">
+                                    <th class="p-2" data-lang-key="date">Date</th>
+                                    <th class="p-2" data-lang-key="product_name">Product</th>
+                                    <th class="p-2" data-lang-key="transaction_type">Type</th>
+                                    <th class="p-2" data-lang-key="quantity_change">Change</th>
+                                    <th class="p-2" data-lang-key="remaining_stock">Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
         </div>
-    );
-};
+    </div>
 
-const AddProductForm = ({ onAdd, onCancel }) => {
-    const [product, setProduct] = useState({
-        sku: '', name: '', brand: '', price: '', quantity: ''
-    });
+    <!-- Modals -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
 
-    const handleChange = (e) => {
-        const { id, value } = e.target;
-        setProduct(prev => ({ ...prev, [id]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const newProduct = {
-            id: Date.now(), // Temporary unique ID
-            ...product,
-            price: parseFloat(product.price),
-            quantity: parseInt(product.quantity),
-            cost: parseFloat(product.price) * 0.7, // Mock cost
-        };
-        onAdd(newProduct);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <Input id="sku" label="SKU" value={product.sku} onChange={handleChange} placeholder="e.g., APL-IP16-BLK" />
-            <Input id="name" label="Product Name" value={product.name} onChange={handleChange} placeholder="e.g., iPhone 16" />
-            <Input id="brand" label="Brand" value={product.brand} onChange={handleChange} placeholder="e.g., Apple" />
-            <Input id="price" label="Selling Price" type="number" value={product.price} onChange={handleChange} placeholder="e.g., 1199.00" />
-            <Input id="quantity" label="Stock Quantity" type="number" value={product.quantity} onChange={handleChange} placeholder="e.g., 10" />
-            <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-                <Button type="submit">Add Product</Button>
-            </div>
-        </form>
-    );
-};
-
-const InventoryList = () => {
-    const { products, addProduct } = useContext(AppContext);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const handleAddProduct = (newProduct) => {
-        addProduct(newProduct);
-        setIsModalOpen(false);
-    };
-
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Inventory</h1>
-                <Button onClick={() => setIsModalOpen(true)}><PlusCircleIcon className="h-5 w-5 mr-2"/>Add Product</Button>
-            </div>
-            <Card>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {products.map(product => (
-                            <tr key={product.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.sku}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.price.toFixed(2)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.quantity > 5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {product.quantity}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </Card>
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Product">
-                <AddProductForm onAdd={handleAddProduct} onCancel={() => setIsModalOpen(false)} />
-            </Modal>
-        </div>
-    );
-};
-
-const RepairTickets = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const RepairIntakeForm = () => {
-        return (
-            <form className="space-y-4">
-                <Input id="customerName" label="Customer Name" placeholder="e.g., John Doe" />
-                <Input id="deviceModel" label="Device Brand & Model" placeholder="e.g., Apple iPhone 14 Pro" />
-                <Input id="imei" label="IMEI / Serial Number" placeholder="Enter device serial number" />
+    <!-- Product Modal -->
+    <div id="product-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="card rounded-lg shadow-xl w-full max-w-md">
+            <h3 id="product-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Product</h3>
+            <form id="product-form" class="p-4 space-y-4">
+                <input type="hidden" id="product-id">
+                <div id="product-error" class="text-red-500 text-sm mb-2 hidden"></div>
                 <div>
-                    <label htmlFor="problem" className="block text-sm font-medium text-gray-700">Problem Description</label>
-                    <textarea id="problem" rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Describe the issue..."></textarea>
+                    <label for="product-name" class="block mb-1">Name</label>
+                    <input type="text" id="product-name" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
                 </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                    <Button type="submit">Create Ticket</Button>
+                <div>
+                    <label for="product-category" class="block mb-1">Category</label>
+                    <input type="text" id="product-category" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="product-purchase-price" class="block mb-1">Purchase Price</label>
+                        <input type="number" id="product-purchase-price" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                    </div>
+                    <div>
+                        <label for="product-selling-price" class="block mb-1">Selling Price</label>
+                        <input type="number" id="product-selling-price" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="product-quantity" class="block mb-1">Quantity</label>
+                        <input type="number" id="product-quantity" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                    </div>
+                    <div>
+                        <label for="product-low-stock" class="block mb-1">Low Stock Level</label>
+                        <input type="number" id="product-low-stock" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
+                    <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
+                    <button type="submit" id="save-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
                 </div>
             </form>
-        );
-    }
-
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Repair Tickets</h1>
-                <Button onClick={() => setIsModalOpen(true)}><PlusCircleIcon className="h-5 w-5 mr-2"/>New Repair Ticket</Button>
-            </div>
-            <Card>
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket #</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {MOCK_REPAIRS.map(repair => (
-                            <tr key={repair.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:underline cursor-pointer">{repair.ticket}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{repair.customer}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{repair.device}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        {repair.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </Card>
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Repair Intake">
-                <RepairIntakeForm />
-            </Modal>
         </div>
-    );
-};
-
-const PlaceholderPage = ({ title }) => (
-    <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">{title}</h1>
-        <Card>
-            <p className="text-gray-600 text-center py-12">This page is under construction. Check back soon!</p>
-        </Card>
     </div>
-);
 
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+         <div class="card rounded-lg shadow-xl w-full max-w-md">
+            <h3 id="expense-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Expense</h3>
+            <form id="expense-form" class="p-4 space-y-4">
+                <input type="hidden" id="expense-id">
+                <div id="expense-error" class="text-red-500 text-sm mb-2 hidden"></div>
+                <div>
+                    <label for="expense-date" class="block mb-1">Date</label>
+                    <input type="date" id="expense-date" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div>
+                    <label for="expense-description" class="block mb-1">Description</label>
+                    <input type="text" id="expense-description" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div>
+                    <label for="expense-amount" class="block mb-1">Amount</label>
+                    <input type="number" id="expense-amount" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
+                    <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
+                    <button type="submit" id="save-expense-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-// --- MAIN APP COMPONENT ---
+    <!-- Customer Modal -->
+    <div id="customer-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+         <div class="card rounded-lg shadow-xl w-full max-w-md">
+            <h3 id="customer-modal-title" class="text-xl font-bold p-4 border-b dark:border-slate-700">Add Customer</h3>
+            <form id="customer-form" class="p-4 space-y-4">
+                <input type="hidden" id="customer-id">
+                 <div id="customer-error" class="text-red-500 text-sm mb-2 hidden"></div>
+                <div>
+                    <label for="customer-name" class="block mb-1">Name</label>
+                    <input type="text" id="customer-name" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div>
+                    <label for="customer-phone" class="block mb-1">Phone</label>
+                    <input type="tel" id="customer-phone" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required>
+                </div>
+                <div>
+                    <label for="customer-address" class="block mb-1">Address</label>
+                    <textarea id="customer-address" class="w-full p-2 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t dark:border-slate-700">
+                    <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg">Cancel</button>
+                    <button type="submit" id="save-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-24 h-10 flex items-center justify-center">
+                        <span class="btn-text">Save</span>
+                        <div class="loader btn-loader hidden"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [products, setProducts] = useState(INITIAL_MOCK_PRODUCTS);
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, updateDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  const navigate = (page) => {
-    setCurrentPage(page);
-  };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBOOTnTWqTYyWTBo8uvuJVd85399hJwOA",
+            authDomain: "shop-1e233.firebaseapp.com",
+            projectId: "shop-1e233",
+            storageBucket: "shop-1e233.appspot.com",
+            messagingSenderId: "674505750349",
+            appId: "1:674505750349:web:ea131ee81b27d5b960a904",
+            measurementId: "G-S65ER0NBR4"
+        };
 
-  const addProduct = (newProduct) => {
-    setProducts(prevProducts => [...prevProducts, newProduct]);
-  };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth();
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard': return <Dashboard />;
-      case 'inventory': return <InventoryList />;
-      case 'pos': return <POS />;
-      case 'repairs': return <RepairTickets />;
-      case 'customers': return <PlaceholderPage title="Customers" />;
-      case 'suppliers': return <PlaceholderPage title="Suppliers" />;
-      case 'reports': return <PlaceholderPage title="Reports" />;
-      case 'settings': return <PlaceholderPage title="Settings" />;
-      default: return <Dashboard />;
-    }
-  };
+        // App State
+        let products = [];
+        let sales = [];
+        let expenses = [];
+        let customers = [];
+        let history = [];
+        let salesChart;
 
-  return (
-    <AppContext.Provider value={{ navigate, currentPage, products, addProduct }}>
-      <AppLayout>
-        {renderPage()}
-      </AppLayout>
-    </AppContext.Provider>
-  );
-}
+        // Language Translations
+        const translations = {
+            en: {
+                app_title: "Mobile Shop",
+                dashboard: "Dashboard",
+                products: "Products",
+                pos: "Sales Terminal",
+                expenses: "Expenses",
+                customers: "Customers",
+                history: "Stock History",
+                sales_today: "Today's Sales",
+                profit_today: "Today's Profit",
+                expenses_today: "Today's Expenses",
+                monthly_sales: "Monthly Sales",
+                monthly_profit: "Monthly Profit",
+                monthly_expenses: "Monthly Expenses",
+                weekly_sales: "Weekly Sales",
+                top_selling: "Top Selling Products",
+                low_stock: "Low Stock Alerts",
+                manage_products: "Manage Products",
+                add_product: "Add Product",
+                product_name: "Name",
+                category: "Category",
+                purchase_price: "Purchase Price",
+                selling_price: "Selling Price",
+                quantity: "Quantity",
+                actions: "Actions",
+                invoice: "Invoice",
+                manage_expenses: "Manage Expenses",
+                add_expense: "Add Expense",
+                date: "Date",
+                description: "Description",
+                amount: "Amount",
+                manage_customers: "Manage Customers",
+                add_customer: "Add Customer",
+                customer_name: "Name",
+                phone: "Phone",
+                address: "Address",
+                stock_history: "Stock History",
+                transaction_type: "Type",
+                quantity_change: "Change",
+                remaining_stock: "Remaining"
+            },
+            ps: {
+                app_title: "د موبایل پلورنځی",
+                dashboard: "ډشبورډ",
+                products: "محصولات",
+                pos: "د پلور ټرمینل",
+                expenses: "لګښتونه",
+                customers: "پیرودونکي",
+                history: "د سټاک تاریخ",
+                sales_today: "د نن ورځې پلور",
+                profit_today: "د نن ورځې ګټه",
+                expenses_today: "د نن ورځې لګښتونه",
+                monthly_sales: "میاشتنی پلور",
+                monthly_profit: "میاشتنۍ ګټه",
+                monthly_expenses: "میاشتني لګښتونه",
+                weekly_sales: "اوونیز پلور",
+                top_selling: "غوره پلورل شوي محصولات",
+                low_stock: "د کم سټاک خبرتیا",
+                manage_products: "د محصولاتو اداره کول",
+                add_product: "محصول اضافه کړئ",
+                product_name: "نوم",
+                category: "کټګوري",
+                purchase_price: "د پیرود بیه",
+                selling_price: "د پلور بیه",
+                quantity: "مقدار",
+                actions: "کړنې",
+                invoice: "انوایس",
+                manage_expenses: "د لګښتونو اداره کول",
+                add_expense: "لګښت اضافه کړئ",
+                date: "نیټه",
+                description: "تفصیل",
+                amount: "مقدار",
+                manage_customers: "د پیرودونکو اداره کول",
+                add_customer: "پیرودونکی اضافه کړئ",
+                customer_name: "نوم",
+                phone: "تلیفون",
+                address: "پته",
+                stock_history: "د سټاک تاریخ",
+                transaction_type: "ډول",
+                quantity_change: "بدلون",
+                remaining_stock: "پاتې"
+            }
+        };
+
+        const languageSwitcher = document.getElementById('language-switcher');
+        let currentLanguage = 'en';
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ps' ? 'rtl' : 'ltr';
+            document.querySelectorAll('[data-lang-key]').forEach(el => {
+                const key = el.getAttribute('data-lang-key');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+            document.getElementById('header-title').textContent = translations[lang][document.querySelector('.sidebar-link.active span').dataset.langKey];
+        }
+
+        languageSwitcher.addEventListener('change', (e) => setLanguage(e.target.value));
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const darkIcon = document.getElementById('theme-icon-dark');
+
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            lightIcon.classList.toggle('hidden');
+            darkIcon.classList.toggle('hidden');
+        });
+
+        // Sidebar and Navigation
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('translate-x-0');
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                const sectionId = link.dataset.section + '-section';
+                document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+                document.getElementById(sectionId).classList.remove('hidden');
+
+                document.getElementById('header-title').textContent = link.querySelector('span').textContent;
+
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                }
+            });
+        });
+
+        // Modal Handling
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const productModal = document.getElementById('product-modal');
+        const expenseModal = document.getElementById('expense-modal');
+        const customerModal = document.getElementById('customer-modal');
+        
+        function openModal(modal) {
+            modalBackdrop.classList.remove('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal(modal) {
+            modalBackdrop.classList.add('hidden');
+            modal.classList.add('hidden');
+            modal.querySelector('form').reset();
+            const errorDiv = modal.querySelector('.text-red-500');
+            if (errorDiv) errorDiv.classList.add('hidden');
+        }
+
+        document.getElementById('add-product-btn').addEventListener('click', () => openModal(productModal));
+        document.getElementById('add-expense-btn').addEventListener('click', () => openModal(expenseModal));
+        document.getElementById('add-customer-btn').addEventListener('click', () => openModal(customerModal));
+        
+        document.querySelectorAll('.modal-cancel-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                closeModal(btn.closest('.fixed'));
+            });
+        });
+
+        // Firestore Listeners
+        function initializeDataListeners() {
+            onSnapshot(collection(db, "products"), (snapshot) => {
+                products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "sales"), (snapshot) => {
+                sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "expenses"), (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "customers"), (snapshot) => {
+                customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+            onSnapshot(collection(db, "history"), (snapshot) => {
+                history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            });
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderProducts();
+            renderExpenses();
+            renderCustomers();
+            renderHistory();
+            renderPosProducts();
+        }
+
+        // Dashboard Rendering
+        function renderDashboard() {
+            const now = new Date();
+            const todayStart = new Date().setHours(0, 0, 0, 0);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const salesToday = sales.filter(s => new Date(s.date.seconds * 1000) >= todayStart);
+            const expensesToday = expenses.filter(e => new Date(e.date) >= todayStart);
+            const salesMonth = sales.filter(s => new Date(s.date.seconds * 1000) >= monthStart);
+            const expensesMonth = expenses.filter(e => new Date(e.date) >= monthStart);
+
+            const totalSalesToday = salesToday.reduce((sum, s) => sum + s.total, 0);
+            const totalExpensesToday = expensesToday.reduce((sum, e) => sum + e.amount, 0);
+            const profitToday = salesToday.reduce((sum, s) => sum + s.profit, 0) - totalExpensesToday;
+            
+            const totalSalesMonth = salesMonth.reduce((sum, s) => sum + s.total, 0);
+            const totalExpensesMonth = expensesMonth.reduce((sum, e) => sum + e.amount, 0);
+            const profitMonth = salesMonth.reduce((sum, s) => sum + s.profit, 0) - totalExpensesMonth;
+
+            document.getElementById('sales-today').textContent = `$${totalSalesToday.toFixed(2)}`;
+            document.getElementById('profit-today').textContent = `$${profitToday.toFixed(2)}`;
+            document.getElementById('expenses-today').textContent = `$${totalExpensesToday.toFixed(2)}`;
+            document.getElementById('monthly-sales').textContent = `$${totalSalesMonth.toFixed(2)}`;
+            document.getElementById('monthly-profit').textContent = `$${profitMonth.toFixed(2)}`;
+            document.getElementById('monthly-expenses').textContent = `$${totalExpensesMonth.toFixed(2)}`;
+            
+            // Weekly Sales Chart
+            const weeklySalesData = Array(7).fill(0);
+            const todayDay = new Date().getDay();
+            sales.forEach(sale => {
+                const saleDate = new Date(sale.date.seconds * 1000);
+                const diffDays = Math.floor((todayStart - saleDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays < 7) {
+                    weeklySalesData[(todayDay - diffDays + 7) % 7] += sale.total;
+                }
+            });
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const labels = Array(7).fill(0).map((_, i) => days[(todayDay - 6 + i + 7) % 7]);
+
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(document.getElementById('sales-chart').getContext('2d'), {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Sales', data: weeklySalesData, backgroundColor: '#4f46e5' }] },
+                options: { responsive: true }
+            });
+
+            // Top Selling & Low Stock
+            const productSales = {};
+            sales.forEach(sale => {
+                sale.items.forEach(item => {
+                    productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
+                });
+            });
+            const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            document.getElementById('top-products-list').innerHTML = topProducts.map(([id, qty]) => {
+                const product = products.find(p => p.id === id);
+                return `<li>${product ? product.name : 'Unknown'} - Sold: ${qty}</li>`;
+            }).join('') || '<li>No sales yet.</li>';
+
+            const lowStockProducts = products.filter(p => p.quantity <= p.lowStockLevel);
+            document.getElementById('low-stock-list').innerHTML = lowStockProducts.map(p => 
+                `<li class="text-red-500">${p.name} - Remaining: ${p.quantity}</li>`
+            ).join('') || '<li>No low stock items.</li>';
+        }
+
+        // Products Rendering
+        function renderProducts() {
+            const table = document.getElementById('products-table');
+            table.innerHTML = products.map(p => `
+                <tr class="border-b dark:border-slate-700">
+                    <td class="p-2">${p.name}</td>
+                    <td class="p-2">${p.category}</td>
+                    <td class="p-2">$${p.purchasePrice.toFixed(2)}</td>
+                    <td class="p-2">$${p.sellingPrice.toFixed(2)}</td>
+                    <td class="p-2">${p.quantity}</td>
+                    <td class="p-2">
+                        <button class="edit-product-btn text-indigo-500" data-id="${p.id}">Edit</button>
+                        <button class="delete-product-btn text-red-500" data-id="${p.id}">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Expenses Rendering
+        function renderExpenses() {
+            const table = document.getElementById('expenses-table');
+            table.innerHTML = expenses.map(e => `
+                <tr class="border-b dark:border-slate-700">
+                    <td class="p-2">${new Date(e.date).toLocaleDateString()}</td>
+                    <td class="p-2">${e.description}</td>
+                    <td class="p-2">$${e.amount.toFixed(2)}</td>
+                    <td class="p-2">
+                        <button class="edit-expense-btn text-indigo-500" data-id="${e.id}">Edit</button>
+                        <button class="delete-expense-btn text-red-500" data-id="${e.id}">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Customers Rendering
+        function renderCustomers() {
+             const table = document.getElementById('customers-table');
+            table.innerHTML = customers.map(c => `
+                <tr class="border-b dark:border-slate-700">
+                    <td class="p-2">${c.name}</td>
+                    <td class="p-2">${c.phone}</td>
+                    <td class="p-2">${c.address}</td>
+                    <td class="p-2">
+                        <button class="edit-customer-btn text-indigo-500" data-id="${c.id}">Edit</button>
+                        <button class="delete-customer-btn text-red-500" data-id="${c.id}">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // History Rendering
+        function renderHistory() {
+            const table = document.getElementById('history-table');
+            table.innerHTML = history.sort((a, b) => b.date.seconds - a.date.seconds).map(h => `
+                <tr class="border-b dark:border-slate-700">
+                    <td class="p-2">${new Date(h.date.seconds * 1000).toLocaleString()}</td>
+                    <td class="p-2">${h.productName}</td>
+                    <td class="p-2">${h.type}</td>
+                    <td class="p-2">${h.change}</td>
+                    <td class="p-2">${h.remaining}</td>
+                </tr>
+            `).join('');
+        }
+
+        // POS Rendering
+        function renderPosProducts() {
+            const list = document.getElementById('product-list-pos');
+            const searchTerm = document.getElementById('product-search').value.toLowerCase();
+            list.innerHTML = products
+                .filter(p => p.name.toLowerCase().includes(searchTerm) && p.quantity > 0)
+                .map(p => `
+                <div class="card p-2 rounded-lg text-center cursor-pointer pos-product-item" data-id="${p.id}">
+                    <p class="font-semibold">${p.name}</p>
+                    <p class="text-sm text-slate-500">${p.quantity} in stock</p>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('product-search').addEventListener('input', renderPosProducts);
+
+        // Form Submissions
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveButton = document.getElementById('save-product-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('product-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('product-id').value;
+                const product = {
+                    name: document.getElementById('product-name').value,
+                    category: document.getElementById('product-category').value,
+                    purchasePrice: parseFloat(document.getElementById('product-purchase-price').value),
+                    sellingPrice: parseFloat(document.getElementById('product-selling-price').value),
+                    quantity: parseInt(document.getElementById('product-quantity').value),
+                    lowStockLevel: parseInt(document.getElementById('product-low-stock').value),
+                };
+                if (id) {
+                    await setDoc(doc(db, "products", id), product);
+                } else {
+                    await addDoc(collection(db, "products"), product);
+                }
+                closeModal(productModal);
+            } catch (error) {
+                console.error("Error saving product:", error);
+                errorDiv.textContent = "Failed to save product. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
+            }
+        });
+
+        document.getElementById('expense-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+             const saveButton = document.getElementById('save-expense-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('expense-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('expense-id').value;
+                const expense = {
+                    date: document.getElementById('expense-date').value,
+                    description: document.getElementById('expense-description').value,
+                    amount: parseFloat(document.getElementById('expense-amount').value),
+                };
+                if (id) {
+                    await setDoc(doc(db, "expenses", id), expense);
+                } else {
+                    await addDoc(collection(db, "expenses"), expense);
+                }
+                closeModal(expenseModal);
+            } catch (error) {
+                console.error("Error saving expense:", error);
+                errorDiv.textContent = "Failed to save expense. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
+            }
+        });
+
+        document.getElementById('customer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveButton = document.getElementById('save-customer-btn');
+            const btnText = saveButton.querySelector('.btn-text');
+            const btnLoader = saveButton.querySelector('.btn-loader');
+            const errorDiv = document.getElementById('customer-error');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            saveButton.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                const id = document.getElementById('customer-id').value;
+                const customer = {
+                    name: document.getElementById('customer-name').value,
+                    phone: document.getElementById('customer-phone').value,
+                    address: document.getElementById('customer-address').value,
+                };
+                if (id) {
+                    await setDoc(doc(db, "customers", id), customer);
+                } else {
+                    await addDoc(collection(db, "customers"), customer);
+                }
+                closeModal(customerModal);
+            } catch (error) {
+                console.error("Error saving customer:", error);
+                errorDiv.textContent = "Failed to save customer. Please try again.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                saveButton.disabled = false;
+            }
+        });
+
+        // POS Logic
+        let invoiceItems = {};
+
+        document.getElementById('product-list-pos').addEventListener('click', (e) => {
+            const item = e.target.closest('.pos-product-item');
+            if (item) {
+                const id = item.dataset.id;
+                if (invoiceItems[id]) {
+                    invoiceItems[id].quantity++;
+                } else {
+                    const product = products.find(p => p.id === id);
+                    invoiceItems[id] = { ...product, quantity: 1 };
+                }
+                renderInvoice();
+            }
+        });
+
+        function renderInvoice() {
+            const itemsDiv = document.getElementById('invoice-items');
+            itemsDiv.innerHTML = Object.values(invoiceItems).map(item => `
+                <div class="flex justify-between items-center">
+                    <span>${item.name}</span>
+                    <input type="number" value="${item.quantity}" min="1" max="${item.quantity + (products.find(p=>p.id===item.id)?.quantity || 0)}" class="w-16 p-1 text-center invoice-item-qty" data-id="${item.id}">
+                    <span>$${(item.sellingPrice * item.quantity).toFixed(2)}</span>
+                </div>
+            `).join('');
+            updateInvoiceTotal();
+        }
+        
+        document.getElementById('invoice-items').addEventListener('change', (e) => {
+            if (e.target.classList.contains('invoice-item-qty')) {
+                const id = e.target.dataset.id;
+                const newQty = parseInt(e.target.value);
+                const product = products.find(p => p.id === id);
+                if (newQty > product.quantity) {
+                    e.target.value = product.quantity;
+                    alert('Not enough stock!');
+                } else {
+                    invoiceItems[id].quantity = newQty;
+                }
+                renderInvoice();
+            }
+        });
+        
+        document.getElementById('invoice-discount').addEventListener('input', updateInvoiceTotal);
+        document.getElementById('invoice-tax').addEventListener('input', updateInvoiceTotal);
+
+        function updateInvoiceTotal() {
+            const subtotal = Object.values(invoiceItems).reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+            const discount = parseFloat(document.getElementById('invoice-discount').value) || 0;
+            const taxPercent = parseFloat(document.getElementById('invoice-tax').value) || 0;
+            const taxAmount = (subtotal - discount) * (taxPercent / 100);
+            const total = subtotal - discount + taxAmount;
+
+            document.getElementById('invoice-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('invoice-total').textContent = `$${total.toFixed(2)}`;
+        }
+
+        document.getElementById('complete-sale-btn').addEventListener('click', async () => {
+            if (Object.keys(invoiceItems).length === 0) return;
+            
+            const subtotal = Object.values(invoiceItems).reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+            const discount = parseFloat(document.getElementById('invoice-discount').value) || 0;
+            const tax = parseFloat(document.getElementById('invoice-tax').value) || 0;
+            const total = subtotal - discount + ((subtotal - discount) * (tax / 100));
+            const profit = Object.values(invoiceItems).reduce((sum, item) => sum + ((item.sellingPrice - item.purchasePrice) * item.quantity), 0) - discount;
+
+            const sale = {
+                date: new Date(),
+                items: Object.values(invoiceItems).map(i => ({ productId: i.id, name: i.name, quantity: i.quantity, price: i.sellingPrice })),
+                subtotal, discount, tax, total, profit
+            };
+
+            const batch = writeBatch(db);
+            
+            batch.set(doc(collection(db, "sales")), sale);
+
+            for (const item of Object.values(invoiceItems)) {
+                const productRef = doc(db, "products", item.id);
+                const product = products.find(p => p.id === item.id);
+                const newQuantity = product.quantity - item.quantity;
+                batch.update(productRef, { quantity: newQuantity });
+
+                const historyEntry = {
+                    date: new Date(),
+                    productName: item.name,
+                    type: 'Sale',
+                    change: -item.quantity,
+                    remaining: newQuantity
+                };
+                batch.set(doc(collection(db, "history")), historyEntry);
+            }
+
+            await batch.commit();
+
+            invoiceItems = {};
+            renderInvoice();
+            document.getElementById('invoice-discount').value = 0;
+            document.getElementById('invoice-tax').value = 0;
+            alert('Sale completed!');
+        });
+
+        // Initialize App
+        async function main() {
+            try {
+                await signInAnonymously(auth);
+                initializeDataListeners();
+            } catch (error) {
+                console.error("Anonymous sign-in failed:", error);
+                document.body.innerHTML = `<div class="text-red-500 text-center p-8">Could not connect to the database. Please check your Firebase configuration and ensure Anonymous Authentication is enabled.</div>`;
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
